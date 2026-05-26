@@ -19,6 +19,10 @@ pub struct Cli {
     #[arg(long)]
     pub watch_interval: Option<u64>,
 
+    /// Duration to let background replenisher run after display in single-run mode (seconds)
+    #[arg(long)]
+    pub replenish_duration: Option<u64>,
+
     /// Proxy URL
     #[arg(short = 'p', long)]
     pub proxy: Option<String>,

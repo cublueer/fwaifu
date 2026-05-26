@@ -549,7 +549,13 @@ async fn main() {
         watch::watch_loop(config.watch_interval, run_once).await;
     } else {
         run_once().await;
-        // Brief yield to let spawned tasks get one poll cycle before shutdown
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        // Let the background replenisher run for the configured duration
+        // to refill stock for both SFW and NSFW before exiting.
+        if is_chinese() {
+            println!("后台补充库存中，{} 秒后退出...", config.replenish_duration);
+        } else {
+            println!("Replenishing stock in background, exiting in {}s...", config.replenish_duration);
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(config.replenish_duration)).await;
     }
 }

@@ -18,6 +18,7 @@ pub struct Config {
     pub max_used_limit: u32,
     pub clean_cache: bool,
     pub fastfetch_args: Vec<String>,
+    pub replenish_duration: u64,
 }
 
 impl Default for Config {
@@ -37,6 +38,7 @@ impl Default for Config {
             max_used_limit: 50,
             clean_cache: true,
             fastfetch_args: Vec::new(),
+            replenish_duration: 30,
         }
     }
 }
@@ -49,6 +51,7 @@ struct FileConfig {
     crop_height: Option<u32>,
     logo_width: Option<u32>,
     watch_interval: Option<u64>,
+    replenish_duration: Option<u64>,
     #[serde(default)]
     download: FileDownloadConfig,
     #[serde(default)]
@@ -114,6 +117,9 @@ fn merge_file_config(config: &mut Config, file: &FileConfig) {
     if let Some(watch_interval) = file.watch_interval {
         config.watch_interval = watch_interval;
     }
+    if let Some(dur) = file.replenish_duration {
+        config.replenish_duration = dur;
+    }
     if let Some(batch_size) = file.download.batch_size {
         config.download_batch_size = batch_size;
     }
@@ -140,6 +146,9 @@ fn merge_cli_overrides(config: &mut Config, cli: &Cli) {
     }
     if let Some(watch_interval) = cli.watch_interval {
         config.watch_interval = watch_interval;
+    }
+    if let Some(dur) = cli.replenish_duration {
+        config.replenish_duration = dur;
     }
     if let Some(ref proxy) = cli.proxy {
         config.proxy = Some(proxy.clone());
