@@ -3,6 +3,7 @@ mod auth;
 mod cache;
 mod cli;
 mod config;
+mod daemon;
 mod downloader;
 mod image;
 mod runner;
@@ -216,19 +217,131 @@ async fn background_fill(
     let _ = std::fs::remove_file(&lock_path);
 }
 
-// ─── Background Replenisher ──────────────────────────────────────────
+// ─── Daemon Loop ─────────────────────────────────────────────────────
 
-/// Periodically checks both SFW and NSFW stock levels and spawns
-/// background fill tasks for any mode that is below the trigger limit.
-async fn background_replenisher(
-    config: config::Config,
-    cache: Arc<cache::CacheManager>,
-    api_client: Arc<api::NekosMoeClient>,
-    direct_client: reqwest::Client,
-    proxy_client: reqwest::Client,
+/// Background daemon loop: periodically checks heartbeat and replenishes
+/// stock for both SFW and NSFW. Exits when no heartbeat is received for
+/// longer than `duration` seconds.
+async fn run_daemon(
+    duration: u64,
 ) {
-    let interval = Duration::from_secs(60);
+    use std::sync::Arc;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::path::PathBuf;
+
+    // Set up cache
+    let cache_dir = dirs::cache_dir()
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .join("fwaifu");
+    let cache = Arc::new(cache::CacheManager::new(cache_dir));
+    if let Err(e) = cache.init() {
+        eprintln!("Daemon: failed to init cache: {e}");
+        daemon::cleanup_daemon();
+        std::process::exit(1);
+    }
+
+    // Set up config (load from file + env, no CLI overrides in daemon mode)
+    let mut config = config::Config::default();
+    // Merge from file
+    if let Some(config_dir) = dirs::config_dir() {
+        let config_path = config_dir.join("fwaifu").join("config.toml");
+        if config_path.exists()
+            && let Ok(content) = std::fs::read_to_string(&config_path)
+        {
+                // Use a minimal file config struct for daemon mode
+                #[derive(serde::Deserialize)]
+                struct DaemonFileConfig {
+                    proxy: Option<String>,
+                    #[serde(default)]
+                    download: DaemonDownloadConfig,
+                    #[serde(default)]
+                    cache: DaemonCacheConfig,
+                }
+                #[derive(serde::Deserialize, Default)]
+                struct DaemonDownloadConfig {
+                    batch_size: Option<u32>,
+                }
+                #[derive(serde::Deserialize, Default)]
+                struct DaemonCacheConfig {
+                    max_limit: Option<u32>,
+                    min_trigger: Option<u32>,
+                    max_used: Option<u32>,
+                }
+                if let Ok(fc) = toml::from_str::<DaemonFileConfig>(&content) {
+                    if let Some(proxy) = fc.proxy {
+                        config.proxy = Some(proxy);
+                    }
+                    if let Some(bs) = fc.download.batch_size {
+                        config.download_batch_size = bs;
+                    }
+                    if let Some(ml) = fc.cache.max_limit {
+                        config.max_cache_limit = ml;
+                    }
+                    if let Some(mt) = fc.cache.min_trigger {
+                        config.min_trigger_limit = mt;
+                    }
+                    if let Some(mu) = fc.cache.max_used {
+                        config.max_used_limit = mu;
+                    }
+                }
+            }
+    }
+    // Env var override for proxy
+    if let Ok(proxy) = std::env::var("FWAIFU_PROXY") {
+        config.proxy = Some(proxy);
+    }
+
+    // Set up HTTP clients
+    let direct_client = reqwest::Client::builder()
+        .user_agent("fwaifu/0.1.0")
+        .build()
+        .expect("Daemon: failed to create HTTP client");
+
+    let proxy_client = match config.proxy.as_ref() {
+        Some(proxy_url) => {
+            let proxy = reqwest::Proxy::all(proxy_url).expect("Daemon: invalid proxy URL");
+            reqwest::Client::builder()
+                .user_agent("fwaifu/0.1.0")
+                .proxy(proxy)
+                .build()
+                .expect("Daemon: failed to create proxy HTTP client")
+        }
+        None => direct_client.clone(),
+    };
+
+    let token_path: Option<PathBuf> = Some(
+        dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("/tmp"))
+            .join("fwaifu")
+            .join("token"),
+    );
+
+    let api_client = Arc::new(
+        api::NekosMoeClient::new(config.proxy.as_deref(), token_path)
+            .expect("Daemon: failed to create API client"),
+    );
+
+    // Main daemon loop
     loop {
+        let heartbeat = daemon::read_heartbeat();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        // Exit if no heartbeat within the configured duration
+        if now.saturating_sub(heartbeat) > duration {
+            daemon::cleanup_daemon();
+            std::process::exit(0);
+        }
+
+        // Check network before trying to download
+        if !downloader::check_network(&direct_client).await {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            continue;
+        }
+
+        // Replenish both SFW and NSFW stock
         for nsfw in [false, true] {
             let stock = cache.stock_count(nsfw);
             if stock < config.min_trigger_limit as usize {
@@ -242,7 +355,9 @@ async fn background_replenisher(
                 ));
             }
         }
-        tokio::time::sleep(interval).await;
+
+        // Sleep before next check
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }
 
@@ -384,6 +499,19 @@ async fn main() {
     // 1. Parse CLI args
     let cli = cli::Cli::parse();
 
+    // Read daemon duration from environment variable (default 30 seconds)
+    let daemon_duration: u64 = std::env::var("FWAIFU_DAEMON_DURATION")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(30);
+
+    // Internal daemon mode: run as background replenisher
+    if cli.daemon {
+        daemon::write_daemon_pid();
+        run_daemon(daemon_duration).await;
+        return;
+    }
+
     // 2. Load Config (file → env → CLI)
     let config = config::Config::load(&cli);
 
@@ -514,15 +642,6 @@ async fn main() {
         eprintln!("Warning: failed to initialize cache directories: {e}");
     }
 
-    // 8.5. Spawn the background stock replenisher (runs for both SFW and NSFW)
-    tokio::spawn(background_replenisher(
-        config.clone(),
-        Arc::clone(&cache),
-        Arc::clone(&api_client),
-        direct_client.clone(),
-        proxy_client.clone(),
-    ));
-
     // 9. Build the run_one_cycle closure (clones captured state on each call for watch mode)
     let run_once = {
         let cfg = config.clone();
@@ -548,14 +667,9 @@ async fn main() {
     if watch {
         watch::watch_loop(config.watch_interval, run_once).await;
     } else {
+        // Ensure daemon is running for background replenishment
+        daemon::ensure_daemon(daemon_duration);
         run_once().await;
-        // Let the background replenisher run for the configured duration
-        // to refill stock for both SFW and NSFW before exiting.
-        if is_chinese() {
-            println!("后台补充库存中，{} 秒后退出...", config.replenish_duration);
-        } else {
-            println!("Replenishing stock in background, exiting in {}s...", config.replenish_duration);
-        }
-        tokio::time::sleep(std::time::Duration::from_secs(config.replenish_duration)).await;
+        // Exit immediately — daemon handles replenishment in the background
     }
 }

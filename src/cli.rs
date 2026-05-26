@@ -19,10 +19,6 @@ pub struct Cli {
     #[arg(long)]
     pub watch_interval: Option<u64>,
 
-    /// Duration to let background replenisher run after display in single-run mode (seconds)
-    #[arg(long)]
-    pub replenish_duration: Option<u64>,
-
     /// Proxy URL
     #[arg(short = 'p', long)]
     pub proxy: Option<String>,
@@ -54,6 +50,10 @@ pub struct Cli {
     /// Show login status
     #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub status: bool,
+
+    /// Internal: run as background stock replenisher daemon
+    #[arg(long, hide = true, action = clap::ArgAction::SetTrue, default_value_t = false)]
+    pub daemon: bool,
 
     /// Trailing positional args passed through to fastfetch
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
