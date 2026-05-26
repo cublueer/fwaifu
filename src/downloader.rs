@@ -104,7 +104,7 @@ pub async fn download_image(
 pub async fn check_network(client: &reqwest::Client) -> bool {
     let Ok(response) = client
         .head("https://nekos.moe")
-        .timeout(std::time::Duration::from_secs(3))
+        .timeout(std::time::Duration::from_millis(1500))
         .send()
         .await
     else {

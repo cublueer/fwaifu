@@ -216,6 +216,36 @@ async fn background_fill(
     let _ = std::fs::remove_file(&lock_path);
 }
 
+// ─── Background Replenisher ──────────────────────────────────────────
+
+/// Periodically checks both SFW and NSFW stock levels and spawns
+/// background fill tasks for any mode that is below the trigger limit.
+async fn background_replenisher(
+    config: config::Config,
+    cache: Arc<cache::CacheManager>,
+    api_client: Arc<api::NekosMoeClient>,
+    direct_client: reqwest::Client,
+    proxy_client: reqwest::Client,
+) {
+    let interval = Duration::from_secs(60);
+    loop {
+        for nsfw in [false, true] {
+            let stock = cache.stock_count(nsfw);
+            if stock < config.min_trigger_limit as usize {
+                tokio::spawn(background_fill(
+                    nsfw,
+                    config.clone(),
+                    Arc::clone(&cache),
+                    Arc::clone(&api_client),
+                    direct_client.clone(),
+                    proxy_client.clone(),
+                ));
+            }
+        }
+        tokio::time::sleep(interval).await;
+    }
+}
+
 // ─── One Cycle ──────────────────────────────────────────────────────
 
 /// Execute one full cycle: pick an image, display it via fastfetch,
@@ -236,14 +266,7 @@ async fn run_one_cycle(
         // ── Stock available: pick one and replenish in background ──
         selected = cache.select_random(nsfw);
 
-        tokio::spawn(background_fill(
-            nsfw,
-            config.clone(),
-            Arc::clone(&cache),
-            Arc::clone(&api_client),
-            direct_client.clone(),
-            proxy_client.clone(),
-        ));
+        // Background replenisher handles stock refill — no spawn here.
     } else {
         // ── Stock empty: download one image on demand ──
         if is_chinese() {
@@ -291,14 +314,7 @@ async fn run_one_cycle(
             Ok(_) => {
                 selected = cache.select_random(nsfw);
 
-                tokio::spawn(background_fill(
-                    nsfw,
-                    config.clone(),
-                    Arc::clone(&cache),
-                    Arc::clone(&api_client),
-                    direct_client.clone(),
-                    proxy_client.clone(),
-                ));
+                // Background replenisher handles stock refill — no spawn here.
             }
             Err(_) => {
                 fallback_default(&config.fastfetch_args);
@@ -498,6 +514,15 @@ async fn main() {
         eprintln!("Warning: failed to initialize cache directories: {e}");
     }
 
+    // 8.5. Spawn the background stock replenisher (runs for both SFW and NSFW)
+    tokio::spawn(background_replenisher(
+        config.clone(),
+        Arc::clone(&cache),
+        Arc::clone(&api_client),
+        direct_client.clone(),
+        proxy_client.clone(),
+    ));
+
     // 9. Build the run_one_cycle closure (clones captured state on each call for watch mode)
     let run_once = {
         let cfg = config.clone();
@@ -524,8 +549,7 @@ async fn main() {
         watch::watch_loop(config.watch_interval, run_once).await;
     } else {
         run_once().await;
-        // Brief wait to let background fill download some images.
-        // The spawned tasks are cancelled when the runtime drops.
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        // Brief yield to let spawned tasks get one poll cycle before shutdown
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 }
