@@ -2,7 +2,7 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, USER_AGENT};
 use serde::Deserialize;
 
 const BASE_URL: &str = "https://nekos.moe/api/v1";
-const USER_AGENT_VALUE: &str = "fwaifu/0.1.0";
+const USER_AGENT_VALUE: &str = concat!("fwaifu/", env!("CARGO_PKG_VERSION"));
 
 pub struct NekosMoeClient {
     client: reqwest::Client,

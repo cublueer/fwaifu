@@ -16,6 +16,7 @@ use std::time::Duration;
 
 use clap::Parser;
 
+use cli::Cli;
 use clap::CommandFactory;
 use clap_complete::{generate, Shell as ClapShell};
 
@@ -171,60 +172,13 @@ async fn run_daemon(
         std::process::exit(1);
     }
 
-    // Set up config (load from file + env, no CLI overrides in daemon mode)
-    let mut config = config::Config::default();
-    // Merge from file
-    if let Some(config_dir) = dirs::config_dir() {
-        let config_path = config_dir.join("fwaifu").join("config.toml");
-        if config_path.exists()
-            && let Ok(content) = std::fs::read_to_string(&config_path)
-        {
-                // Use a minimal file config struct for daemon mode
-                #[derive(serde::Deserialize)]
-                struct DaemonFileConfig {
-                    proxy: Option<String>,
-                    #[serde(default)]
-                    download: DaemonDownloadConfig,
-                    #[serde(default)]
-                    cache: DaemonCacheConfig,
-                }
-                #[derive(serde::Deserialize, Default)]
-                struct DaemonDownloadConfig {
-                    batch_size: Option<u32>,
-                }
-                #[derive(serde::Deserialize, Default)]
-                struct DaemonCacheConfig {
-                    max_limit: Option<u32>,
-                    min_trigger: Option<u32>,
-                    max_used: Option<u32>,
-                }
-                if let Ok(fc) = toml::from_str::<DaemonFileConfig>(&content) {
-                    if let Some(proxy) = fc.proxy {
-                        config.proxy = Some(proxy);
-                    }
-                    if let Some(bs) = fc.download.batch_size {
-                        config.download_batch_size = bs;
-                    }
-                    if let Some(ml) = fc.cache.max_limit {
-                        config.max_cache_limit = ml;
-                    }
-                    if let Some(mt) = fc.cache.min_trigger {
-                        config.min_trigger_limit = mt;
-                    }
-                    if let Some(mu) = fc.cache.max_used {
-                        config.max_used_limit = mu;
-                    }
-                }
-            }
-    }
-    // Env var override for proxy
-    if let Ok(proxy) = std::env::var("FWAIFU_PROXY") {
-        config.proxy = Some(proxy);
-    }
+    // Set up config (just like main, minus login/status/clean/save which daemon doesn't need)
+    let cli = Cli::parse();
+    let config = config::Config::load(&cli);
 
     // Set up HTTP clients
     let direct_client = reqwest::Client::builder()
-        .user_agent("fwaifu/0.1.0")
+        .user_agent(concat!("fwaifu/", env!("CARGO_PKG_VERSION")))
         .build()
         .expect("Daemon: failed to create HTTP client");
 
@@ -232,7 +186,7 @@ async fn run_daemon(
         Some(proxy_url) => {
             let proxy = reqwest::Proxy::all(proxy_url).expect("Daemon: invalid proxy URL");
             reqwest::Client::builder()
-                .user_agent("fwaifu/0.1.0")
+                .user_agent(concat!("fwaifu/", env!("CARGO_PKG_VERSION")))
                 .proxy(proxy)
                 .build()
                 .expect("Daemon: failed to create proxy HTTP client")
@@ -671,7 +625,7 @@ async fn main() {
     let cache = Arc::new(cache::CacheManager::new(cache_dir));
 
     let direct_client = reqwest::Client::builder()
-        .user_agent("fwaifu/0.1.0")
+        .user_agent(concat!("fwaifu/", env!("CARGO_PKG_VERSION")))
         .build()
         .expect("Failed to create direct HTTP client");
 
@@ -679,7 +633,7 @@ async fn main() {
         Some(proxy_url) => {
             let proxy = reqwest::Proxy::all(proxy_url).expect("Invalid proxy URL");
             reqwest::Client::builder()
-                .user_agent("fwaifu/0.1.0")
+                .user_agent(concat!("fwaifu/", env!("CARGO_PKG_VERSION")))
                 .proxy(proxy)
                 .build()
                 .expect("Failed to create proxy HTTP client")

@@ -1,5 +1,7 @@
 use std::io::{self, Write};
 
+use std::os::unix::fs::PermissionsExt;
+
 use crate::api::NekosMoeClient;
 
 pub struct AuthManager {
@@ -26,7 +28,11 @@ impl AuthManager {
         if let Some(parent) = self.token_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::write(&self.token_path, token)
+        std::fs::write(&self.token_path, token)?;
+        // Restrict token file to owner-only read/write (0600)
+        let perms = std::fs::Permissions::from_mode(0o600);
+        std::fs::set_permissions(&self.token_path, perms)?;
+        Ok(())
     }
 
     pub fn clear_token(&self) -> std::io::Result<()> {
