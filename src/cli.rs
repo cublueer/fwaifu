@@ -55,8 +55,8 @@ pub struct Cli {
     #[arg(long, hide = true, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub daemon: bool,
 
-    /// Clear cache (sfw or nsfw)
-    #[arg(long)]
+    /// Clear cache (sfw, nsfw, or all if no value given)
+    #[arg(long, num_args = 0..=1, default_missing_value = "__DEFAULT__")]
     pub clean: Option<String>,
 
     /// Save the last displayed image (optional path, defaults to config or ~/Pictures/fwaifu)

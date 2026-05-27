@@ -10,6 +10,7 @@ login_failed = "❌ 登录失败：{0}"
 token_clear_failed = "⚠️ 清除 Token 失败：{0}"
 clean_sfw = "✅ SFW 缓存已清除。"
 clean_nsfw = "✅ NSFW 缓存已清除。"
+clean_all = "✅ 所有缓存已清除。"
 no_image_to_save = "还没有可保存的图片，请先至少运行一次 fwaifu。"
 image_saved = "💾 图片已保存到：{0}"
 
@@ -26,7 +27,7 @@ cache_remove_failed = "警告：删除文件失败 {0}：{1}"
 daemon_cache_failed = "守护进程：缓存初始化失败：{0}"
 fastfetch_error = "fastfetch 错误：{0}"
 login_error = "登录错误：{0}"
-clean_invalid = "无效的清理目标：{0}，请使用 'sfw' 或 'nsfw'。"
+clean_invalid = "无效的清理目标：{0}，请使用 'sfw'、'nsfw'，或不填清除全部。"
 save_failed = "⚠️ 保存图片失败：{0}"
 
 [help]
@@ -54,7 +55,7 @@ text = """
   --login                     交互式登录 Nekos.moe，保存 Token
   --logout                    登出并清除本地 Token 文件
   --status                    显示登录状态
-  --clean <sfw|nsfw>          清除 SFW 或 NSFW 缓存
+  --clean [sfw|nsfw]          清除 SFW/NSFW/全部缓存（不填则清除全部）
   -s, --save [PATH]            保存上一张图片（默认路径：~/Pictures/fwaifu）
   --version                   显示版本信息
 

@@ -80,10 +80,10 @@ fwaifu --clean nsfw       # 清除 NSFW 缓存
 --logout                    登出
 --status                    登录状态
 -s, --save [PATH]           保存上一张图片
---clean <sfw|nsfw>          清除缓存
+--clean [sfw|nsfw]          清除缓存
 --version                   版本信息
 
-所有选项均可在 --help 后附加 fastfetch 原生参数，如：
+所有选项之后可直接附加 fastfetch 原生参数，如：
 fwaifu --logo-width 30 --pipe false
 ```
 

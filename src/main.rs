@@ -451,6 +451,19 @@ async fn main() {
 
     // Handle --clean
     if let Some(ref target) = cli.clean {
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("/tmp"))
+            .join("fwaifu");
+        let cache = cache::CacheManager::new(cache_dir);
+
+        if target == "__DEFAULT__" {
+            // No argument: clean both SFW and NSFW
+            let _ = cache.clean_all(false);
+            let _ = cache.clean_all(true);
+            println!("{}", i18n::t("msg.clean_all"));
+            return;
+        }
+
         let is_nsfw = match target.to_lowercase().as_str() {
             "nsfw" => true,
             "sfw" => false,
@@ -459,10 +472,6 @@ async fn main() {
                 std::process::exit(1);
             }
         };
-        let cache_dir = dirs::cache_dir()
-            .unwrap_or_else(|| PathBuf::from("/tmp"))
-            .join("fwaifu");
-        let cache = cache::CacheManager::new(cache_dir);
         if let Err(e) = cache.clean_all(is_nsfw) {
             eprintln!("{}", i18n::tf("error.cache_init_failed", &[&e.to_string()]));
             std::process::exit(1);

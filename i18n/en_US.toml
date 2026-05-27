@@ -10,6 +10,7 @@ login_failed = "❌ Login failed: {0}"
 token_clear_failed = "⚠️ Failed to clear token: {0}"
 clean_sfw = "✅ SFW cache cleared."
 clean_nsfw = "✅ NSFW cache cleared."
+clean_all = "✅ All caches cleared."
 no_image_to_save = "No image to save. Please run fwaifu at least once first."
 image_saved = "💾 Image saved to: {0}"
 
@@ -26,7 +27,7 @@ cache_remove_failed = "Warning: failed to remove {0}: {1}"
 daemon_cache_failed = "Daemon: failed to init cache: {0}"
 fastfetch_error = "fastfetch error: {0}"
 login_error = "Login error: {0}"
-clean_invalid = "Invalid clean target: {0}. Use 'sfw' or 'nsfw'."
+clean_invalid = "Invalid clean target: {0}. Use 'sfw', 'nsfw', or omit for all."
 save_failed = "⚠️ Failed to save image: {0}"
 
 [help]
@@ -54,7 +55,7 @@ Options:
   --login                     Interactive login to Nekos.moe (saves token)
   --logout                    Logout and clear stored token
   --status                    Show login status
-  --clean <sfw|nsfw>           Clear SFW or NSFW cache
+  --clean [sfw|nsfw]           Clear SFW/NSFW cache (or all if omitted)
   -s, --save [PATH]             Save the last displayed image (default: ~/Pictures/fwaifu)
   --version                   Show version information
 
