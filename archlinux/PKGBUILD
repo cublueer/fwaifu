@@ -15,7 +15,7 @@ source=()
 sha256sums=()
 
 prepare() {
-    cp -r "$startdir/.." "$srcdir/fwaifu"
+    rsync -a "$startdir/.." "$srcdir/fwaifu" --exclude='archlinux' --exclude='target'
 }
 
 build() {
