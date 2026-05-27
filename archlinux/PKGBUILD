@@ -10,7 +10,7 @@ url="https://github.com/cublueer/fwaifu"
 license=('MIT')
 depends=('fastfetch')
 optdepends=('imagemagick: for image cropping')
-makedepends=('rust' 'git')
+makedepends=('rust' 'git' 'clang')
 source=()
 sha256sums=()
 
@@ -20,6 +20,7 @@ prepare() {
 
 build() {
     cd fwaifu
+    export CC=clang
     cargo build --release
 }
 
