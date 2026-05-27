@@ -1,0 +1,68 @@
+[msg]
+stock_empty = "Not enough stock! Fetching new images, please wait..."
+network_error = "Network seems unreachable, can't download new images QAQ"
+image_failed = "Failed to get an image, showing default logo this time QAQ"
+logged_in = "✅ Logged in to Nekos.moe"
+not_logged_in = "❌ Not logged in to Nekos.moe"
+logged_out = "✅ Logged out. Token cleared."
+login_success = "✅ Login successful!"
+login_failed = "❌ Login failed: {0}"
+token_clear_failed = "⚠️ Failed to clear token: {0}"
+clean_sfw = "✅ SFW cache cleared."
+clean_nsfw = "✅ NSFW cache cleared."
+no_image_to_save = "No image to save. Please run fwaifu at least once first."
+image_saved = "💾 Image saved to: {0}"
+
+[prompt]
+username = "Username: "
+password = "Password: "
+
+[error]
+proxy_invalid = "Invalid proxy URL: {0}"
+proxy_requires_http = "Proxy must start with http:// or https://"
+fastfetch_not_found = "fastfetch is not installed or not found on PATH."
+cache_init_failed = "Warning: failed to initialize cache directories: {0}"
+cache_remove_failed = "Warning: failed to remove {0}: {1}"
+daemon_cache_failed = "Daemon: failed to init cache: {0}"
+fastfetch_error = "fastfetch error: {0}"
+login_error = "Login error: {0}"
+clean_invalid = "Invalid clean target: {0}. Use 'sfw' or 'nsfw'."
+save_failed = "⚠️ Failed to save image: {0}"
+
+[help]
+text = """
+========================================================
+    fwaifu - Random Anime Girl Generator for Terminal
+========================================================
+
+Usage Modes:
+  fwaifu              Standard mode. Shows a random SFW anime girl with system info.
+  fwaifu -n / --nsfw  NSFW mode. Shows NSFW images (requires --login first).
+  fwaifu -w / --watch Continuous watch mode. Refreshes every N seconds, great for a secondary monitor.
+  fwaifu -w -n         Continuous NSFW watch mode.
+
+Options:
+  -h, --help                  Show this help message
+  -n, --nsfw                  Enable NSFW mode
+  -w, --watch                 Enable watch mode
+  --watch-interval <SECONDS>  Watch interval in seconds (default 5)
+  -p, --proxy <URL>           Set proxy URL (e.g. http://127.0.0.1:7890)
+  --no-crop                   Disable image cropping
+  --crop-width <WIDTH>        Crop target width (default 600)
+  --crop-height <HEIGHT>      Crop target height (default 800)
+  --logo-width <WIDTH>        Fastfetch logo display width (default 40)
+  --login                     Interactive login to Nekos.moe (saves token)
+  --logout                    Logout and clear stored token
+  --status                    Show login status
+  --clean <sfw|nsfw>           Clear SFW or NSFW cache
+  -s, --save [PATH]             Save the last displayed image (default: ~/Pictures/fwaifu)
+  --version                   Show version information
+
+Configuration:
+  Config file:  ~/.config/fwaifu/config.toml
+  Environment:  FWAIFU_PROXY
+  Priority:     CLI args > Environment > Config file
+
+Image source: Nekos.moe API (https://nekos.moe)
+========================================================
+"""

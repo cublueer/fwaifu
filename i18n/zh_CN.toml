@@ -1,0 +1,68 @@
+[msg]
+stock_empty = "库存不够啦！正在去搬运新的图片，请稍等哦..."
+network_error = "网络好像不太通畅，无法下载新图片 QAQ"
+image_failed = "图片获取失败了，这次只能先显示默认的 Logo 啦 QAQ"
+logged_in = "✅ 已登录 Nekos.moe"
+not_logged_in = "❌ 未登录 Nekos.moe"
+logged_out = "✅ 已登出，Token 已清除。"
+login_success = "✅ 登录成功！"
+login_failed = "❌ 登录失败：{0}"
+token_clear_failed = "⚠️ 清除 Token 失败：{0}"
+clean_sfw = "✅ SFW 缓存已清除。"
+clean_nsfw = "✅ NSFW 缓存已清除。"
+no_image_to_save = "还没有可保存的图片，请先至少运行一次 fwaifu。"
+image_saved = "💾 图片已保存到：{0}"
+
+[prompt]
+username = "请输入 Username: "
+password = "请输入 Password: "
+
+[error]
+proxy_invalid = "无效的代理地址：{0}"
+proxy_requires_http = "代理必须以 http:// 或 https:// 开头"
+fastfetch_not_found = "找不到 fastfetch，请确认已安装并在 PATH 中。"
+cache_init_failed = "警告：缓存目录初始化失败：{0}"
+cache_remove_failed = "警告：删除文件失败 {0}：{1}"
+daemon_cache_failed = "守护进程：缓存初始化失败：{0}"
+fastfetch_error = "fastfetch 错误：{0}"
+login_error = "登录错误：{0}"
+clean_invalid = "无效的清理目标：{0}，请使用 'sfw' 或 'nsfw'。"
+save_failed = "⚠️ 保存图片失败：{0}"
+
+[help]
+text = """
+========================================================
+    fwaifu - 随机二次元美少女生成器暨 Fastfetch 终端看板娘
+========================================================
+
+用法模式：
+  fwaifu              标准模式。随机生成一张 SFW 美少女图片同时显示系统信息。
+  fwaifu -n / --nsfw  NSFW 模式。显示 NSFW 图片（需要先 --login 登录）。
+  fwaifu -w / --watch 持续轮播模式。每 N 秒刷新，适合挂在副屏当作动态看板娘。
+  fwaifu -w -n         持续 NSFW 轮播模式。
+
+选项：
+  -h, --help                  显示本帮助信息
+  -n, --nsfw                  启用 NSFW 模式
+  -w, --watch                 启用轮播模式
+  --watch-interval <SECONDS>  轮播间隔秒数 (默认 5)
+  -p, --proxy <URL>           设置代理地址 (如 http://127.0.0.1:7890)
+  --no-crop                   关闭图片裁剪
+  --crop-width <WIDTH>        裁剪目标宽度 (默认 600)
+  --crop-height <HEIGHT>      裁剪目标高度 (默认 800)
+  --logo-width <WIDTH>        Fastfetch 图片展示宽度 (默认 40)
+  --login                     交互式登录 Nekos.moe，保存 Token
+  --logout                    登出并清除本地 Token 文件
+  --status                    显示登录状态
+  --clean <sfw|nsfw>          清除 SFW 或 NSFW 缓存
+  -s, --save [PATH]            保存上一张图片（默认路径：~/Pictures/fwaifu）
+  --version                   显示版本信息
+
+配置：
+  配置文件:   ~/.config/fwaifu/config.toml
+  环境变量:   FWAIFU_PROXY
+  优先级:     CLI 参数 > 环境变量 > 配置文件
+
+图片源： Nekos.moe API (https://nekos.moe)
+========================================================
+"""
