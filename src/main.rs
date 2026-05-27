@@ -16,6 +16,9 @@ use std::time::Duration;
 
 use clap::Parser;
 
+use clap::CommandFactory;
+use clap_complete::{generate, Shell as ClapShell};
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 fn print_help() {
@@ -410,6 +413,49 @@ fn fallback_default(fastfetch_args: &[String]) {
     let _ = runner::run_fastfetch_default(fastfetch_args);
 }
 
+// ─── Update Checker ──────────────────────────────────────────────────
+
+/// Fetch remote Cargo.toml, parse version, compare with current, and update if newer.
+async fn check_and_update() {
+    let current_version = env!("CARGO_PKG_VERSION");
+    let remote_url = "https://raw.githubusercontent.com/cublueer/fwaifu/main/Cargo.toml";
+
+    // Fetch remote Cargo.toml
+    let client = reqwest::Client::new();
+    let resp = match client.get(remote_url).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Failed to check for updates: {}", e);
+            return;
+        }
+    };
+
+    let body = match resp.text().await {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("Failed to read remote version: {}", e);
+            return;
+        }
+    };
+
+    // Parse version from Cargo.toml
+    let remote_version = body
+        .lines()
+        .find(|line| line.trim().starts_with("version"))
+        .and_then(|line| line.split('"').nth(1))
+        .unwrap_or("0.0.0");
+
+    println!("Current version: {}", current_version);
+    println!("Latest version:  {}", remote_version);
+
+    if remote_version > current_version {
+        println!("A newer version is available. Run the installer to update:");
+        println!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+    } else {
+        println!("Already up to date.");
+    }
+}
+
 // ─── Main ────────────────────────────────────────────────────────────
 
 #[tokio::main]
@@ -423,6 +469,26 @@ async fn main() {
 
     // 1. Parse CLI args
     let cli = cli::Cli::parse();
+
+    // Handle --update
+    if cli.update {
+        check_and_update().await;
+        return;
+    }
+
+    // Handle --completion
+    if let Some(shell) = cli.completion {
+        use cli::Shell;
+        let mut cmd = cli::Cli::command();
+        let bin_name = "fwaifu";
+        let mut stdout = std::io::stdout();
+        match shell {
+            Shell::Bash => generate(ClapShell::Bash, &mut cmd, bin_name, &mut stdout),
+            Shell::Zsh => generate(ClapShell::Zsh, &mut cmd, bin_name, &mut stdout),
+            Shell::Fish => generate(ClapShell::Fish, &mut cmd, bin_name, &mut stdout),
+        }
+        return;
+    }
 
     // Read daemon duration from environment variable (default 30 seconds)
     let daemon_duration: u64 = std::env::var("FWAIFU_DAEMON_DURATION")

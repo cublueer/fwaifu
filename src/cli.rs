@@ -1,4 +1,5 @@
 use clap::Parser;
+use clap::ValueEnum;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -63,7 +64,22 @@ pub struct Cli {
     #[arg(short = 's', long, num_args = 0..=1, default_missing_value = "__DEFAULT__")]
     pub save: Option<String>,
 
+    /// Check for updates and install if a newer version is available
+    #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
+    pub update: bool,
+
+    /// Generate shell completion script for the given shell
+    #[arg(long, value_enum)]
+    pub completion: Option<Shell>,
+
     /// Trailing positional args passed through to fastfetch
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub fastfetch_args: Vec<String>,
+}
+
+#[derive(ValueEnum, Clone, Debug)]
+pub enum Shell {
+    Bash,
+    Zsh,
+    Fish,
 }

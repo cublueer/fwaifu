@@ -32,6 +32,13 @@ sudo rm -f "$BIN_PATH"
 printf '%b\n' "${GREEN}Removed ${BIN_PATH}${NC}"
 printf '\n'
 
+# --- Remove shell completions ---
+rm -f "${HOME}/.local/share/bash-completion/completions/${BIN_NAME}"
+rm -f "${HOME}/.zsh/completion/_${BIN_NAME}"
+rm -f "${HOME}/.config/fish/completions/${BIN_NAME}.fish"
+printf '%b\n' "${YELLOW}Removed shell completions (if any)${NC}"
+printf '\n'
+
 # --- Interactive directory removal ---
 prompt_remove() {
     dir="$1"

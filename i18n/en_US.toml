@@ -32,38 +32,48 @@ save_failed = "⚠️ Failed to save image: {0}"
 
 [help]
 text = """
-========================================================
-    fwaifu - Random Anime Girl Generator for Terminal
-========================================================
+fwaifu — Random anime girl generator for your terminal, powered by Fastfetch
 
-Usage Modes:
-  fwaifu              Standard mode. Shows a random SFW anime girl with system info.
-  fwaifu -n / --nsfw  NSFW mode. Shows NSFW images (requires --login first).
-  fwaifu -w / --watch Continuous watch mode. Refreshes every N seconds, great for a secondary monitor.
-  fwaifu -w -n         Continuous NSFW watch mode.
+Usage:
+  fwaifu              Standard mode, random SFW image + system info
+  fwaifu -n           NSFW mode (requires --login first)
+  fwaifu -w           Watch mode, auto-refreshing
+  fwaifu -w -n        NSFW watch mode
 
-Options:
-  -h, --help                  Show this help message
-  -n, --nsfw                  Enable NSFW mode
-  -w, --watch                 Enable watch mode
-  --watch-interval <SECONDS>  Watch interval in seconds (default 5)
-  -p, --proxy <URL>           Set proxy URL (e.g. http://127.0.0.1:7890)
-  --no-crop                   Disable image cropping
-  --crop-width <WIDTH>        Crop target width (default 600)
-  --crop-height <HEIGHT>      Crop target height (default 800)
-  --logo-width <WIDTH>        Fastfetch logo display width (default 40)
-  --login                     Interactive login to Nekos.moe (saves token)
-  --logout                    Logout and clear stored token
-  --status                    Show login status
-  --clean [sfw|nsfw]           Clear SFW/NSFW cache (or all if omitted)
-  -s, --save [PATH]             Save the last displayed image (default: ~/Pictures/fwaifu)
-  --version                   Show version information
+Mode Options:
+  -n, --nsfw               Enable NSFW mode
+  -w, --watch              Enable watch mode
+      --watch-interval <S> Watch interval in seconds (default 5)
 
-Configuration:
-  Config file:  ~/.config/fwaifu/config.toml
-  Environment:  FWAIFU_PROXY
-  Priority:     CLI args > Environment > Config file
+Network Options:
+  -p, --proxy <URL>        Proxy URL (e.g. http://127.0.0.1:7890)
 
-Image source: Nekos.moe API (https://nekos.moe)
-========================================================
+Display Options:
+      --no-crop            Disable image cropping
+      --crop-width <W>     Crop width (default 600)
+      --crop-height <H>    Crop height (default 800)
+      --logo-width <W>     Fastfetch image width (default 40)
+
+Account Options:
+      --login              Login to Nekos.moe (saves token)
+      --logout             Logout and clear token
+      --status             Show login status
+
+Cache & Save:
+      --clean [sfw|nsfw]   Clear cache (omit = all)
+  -s, --save [PATH]        Save last image (default ~/Pictures/fwaifu)
+
+Other:
+  -h, --help               Show this help
+      --update             Check for updates
+      --version            Show version
+      --completion <SHELL>  Generate shell completion (bash/zsh/fish)
+
+Config:  ~/.config/fwaifu/config.toml
+Env:     FWAIFU_PROXY
+Priority: CLI args > Env > Config file
+Image Source: Nekos.moe (https://nekos.moe)
+
+Fastfetch native args can be appended after all options, e.g.:
+  fwaifu --logo-width 30 --pipe false
 """

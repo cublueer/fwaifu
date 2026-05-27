@@ -42,6 +42,21 @@ curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/uninstall.sh |
 sudo rm /usr/bin/fwaifu
 ```
 
+### Shell 补全
+
+```bash
+# bash (需要 root)
+sudo sh -c "fwaifu --completion bash > /etc/bash_completion.d/fwaifu"
+
+# zsh
+mkdir -p ~/.zsh/completion
+fwaifu --completion zsh > ~/.zsh/completion/_fwaifu
+# 在 ~/.zshrc 中添加: fpath=(~/.zsh/completion $fpath); autoload -Uz compinit; compinit
+
+# fish
+fwaifu --completion fish > ~/.config/fish/completions/fwaifu.fish
+```
+
 ## 使用 / Usage
 
 ### 基本用法

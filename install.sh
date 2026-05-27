@@ -23,9 +23,11 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 BIN_NAME="fwaifu"
-REPO_URL="https://github.com/cublueer/fwaifu"
 INSTALL_DIR="/usr/bin"
 BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
+
+# Determine source directory (directory containing this script)
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # --- 1. Check cargo + Rust toolchain ---
 if ! command -v cargo >/dev/null 2>&1; then
@@ -80,21 +82,14 @@ if [ "$already_installed" -eq 1 ]; then
     esac
 fi
 
-# --- 4. Clone and build ---
-TMP_DIR=$(mktemp -d)
-cleanup() {
-    [ -n "$TMP_DIR" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
-}
-trap cleanup EXIT
-
-printf '%b\n' "${GREEN}Cloning ${REPO_URL}...${NC}"
-git clone "$REPO_URL" "$TMP_DIR/fwaifu" || {
-    printf '%b\n' "${RED}Error: Failed to clone repository.${NC}" >&2
+# --- 4. Build from local source ---
+if [ ! -f "$SRC_DIR/Cargo.toml" ]; then
+    printf '%b\n' "${RED}Error: Cargo.toml not found in ${SRC_DIR}. Is this the project root?${NC}" >&2
     exit 1
-}
+fi
 
-printf '%b\n' "${GREEN}Building ${BIN_NAME} (this may take a while)...${NC}"
-(cd "$TMP_DIR/fwaifu" && cargo build --release) || {
+printf '%b\n' "${GREEN}Building ${BIN_NAME} from local source at ${SRC_DIR} (this may take a while)...${NC}"
+(cd "$SRC_DIR" && cargo build --release) || {
     printf '%b\n' "${RED}Error: Build failed.${NC}" >&2
     exit 1
 }
@@ -106,12 +101,44 @@ if ! command -v sudo >/dev/null 2>&1; then
 fi
 
 printf '%b\n' "${GREEN}Installing ${BIN_NAME} to ${INSTALL_DIR}/ (sudo may prompt for password)...${NC}"
-sudo mkdir -p "$INSTALL_DIR" && sudo cp "$TMP_DIR/fwaifu/target/release/$BIN_NAME" "$BIN_PATH" || {
+sudo mkdir -p "$INSTALL_DIR" && sudo cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
     printf '%b\n' "${RED}Error: Failed to install to ${INSTALL_DIR}. Permission denied or sudo failed.${NC}" >&2
     exit 1
 }
 
-# --- 8. Print usage ---
+# --- 6. Install shell completions ---
+printf '%b\n' "${GREEN}Installing shell completions...${NC}"
+
+# bash completion
+if command -v bash >/dev/null 2>&1; then
+    BASH_COMPLETION_DIR="${HOME}/.local/share/bash-completion/completions"
+    mkdir -p "$BASH_COMPLETION_DIR"
+    "$BIN_PATH" --completion bash > "$BASH_COMPLETION_DIR/$BIN_NAME" 2>/dev/null && \
+        printf '%b\n' "${GREEN}  bash: installed to ${BASH_COMPLETION_DIR}/${BIN_NAME}${NC}" || \
+        printf '%b\n' "${YELLOW}  bash: failed${NC}"
+fi
+
+# zsh completion
+if command -v zsh >/dev/null 2>&1; then
+    ZSH_COMPLETION_DIR="${HOME}/.zsh/completion"
+    mkdir -p "$ZSH_COMPLETION_DIR"
+    "$BIN_PATH" --completion zsh > "$ZSH_COMPLETION_DIR/_$BIN_NAME" 2>/dev/null && \
+        printf '%b\n' "${GREEN}  zsh: installed to ${ZSH_COMPLETION_DIR}/_${BIN_NAME}${NC}" || \
+        printf '%b\n' "${YELLOW}  zsh: failed${NC}"
+fi
+
+# fish completion
+if command -v fish >/dev/null 2>&1; then
+    FISH_COMPLETION_DIR="${HOME}/.config/fish/completions"
+    mkdir -p "$FISH_COMPLETION_DIR"
+    "$BIN_PATH" --completion fish > "$FISH_COMPLETION_DIR/$BIN_NAME.fish" 2>/dev/null && \
+        printf '%b\n' "${GREEN}  fish: installed to ${FISH_COMPLETION_DIR}/${BIN_NAME}.fish${NC}" || \
+        printf '%b\n' "${YELLOW}  fish: failed${NC}"
+fi
+
+printf '\n'
+
+# --- 7. Print usage ---
 printf '\n%b\n' "${GREEN}Installation complete!${NC}"
 printf '\n%b\n' "${YELLOW}Usage:${NC}"
 printf '%b\n' "  ${BIN_NAME}              Show a random anime image + system info"

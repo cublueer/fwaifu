@@ -32,38 +32,48 @@ save_failed = "⚠️ 保存图片失败：{0}"
 
 [help]
 text = """
-========================================================
-    fwaifu - 随机二次元美少女生成器暨 Fastfetch 终端看板娘
-========================================================
+fwaifu — 随机二次元美少女生成器，基于 Fastfetch 的终端看板娘
 
-用法模式：
-  fwaifu              标准模式。随机生成一张 SFW 美少女图片同时显示系统信息。
-  fwaifu -n / --nsfw  NSFW 模式。显示 NSFW 图片（需要先 --login 登录）。
-  fwaifu -w / --watch 持续轮播模式。每 N 秒刷新，适合挂在副屏当作动态看板娘。
-  fwaifu -w -n         持续 NSFW 轮播模式。
+用法:
+  fwaifu              标准模式，随机显示 SFW 图片 + 系统信息
+  fwaifu -n           NSFW 模式（需先 --login 登录）
+  fwaifu -w           轮播模式，自动刷新，适合副屏挂机
+  fwaifu -w -n        NSFW 轮播模式
 
-选项：
-  -h, --help                  显示本帮助信息
-  -n, --nsfw                  启用 NSFW 模式
-  -w, --watch                 启用轮播模式
-  --watch-interval <SECONDS>  轮播间隔秒数 (默认 5)
-  -p, --proxy <URL>           设置代理地址 (如 http://127.0.0.1:7890)
-  --no-crop                   关闭图片裁剪
-  --crop-width <WIDTH>        裁剪目标宽度 (默认 600)
-  --crop-height <HEIGHT>      裁剪目标高度 (默认 800)
-  --logo-width <WIDTH>        Fastfetch 图片展示宽度 (默认 40)
-  --login                     交互式登录 Nekos.moe，保存 Token
-  --logout                    登出并清除本地 Token 文件
-  --status                    显示登录状态
-  --clean [sfw|nsfw]          清除 SFW/NSFW/全部缓存（不填则清除全部）
-  -s, --save [PATH]            保存上一张图片（默认路径：~/Pictures/fwaifu）
-  --version                   显示版本信息
+模式选项:
+  -n, --nsfw               启用 NSFW 模式
+  -w, --watch              启用轮播模式
+      --watch-interval <秒> 轮播间隔（默认 5）
 
-配置：
-  配置文件:   ~/.config/fwaifu/config.toml
-  环境变量:   FWAIFU_PROXY
-  优先级:     CLI 参数 > 环境变量 > 配置文件
+网络选项:
+  -p, --proxy <URL>        代理地址（如 http://127.0.0.1:7890）
 
-图片源： Nekos.moe API (https://nekos.moe)
-========================================================
+显示选项:
+      --no-crop            禁用图片裁剪
+      --crop-width <宽>    裁剪宽度（默认 600）
+      --crop-height <高>   裁剪高度（默认 800）
+      --logo-width <宽>    Fastfetch 图片宽度（默认 40）
+
+账户选项:
+      --login              登录 Nekos.moe（保存 Token）
+      --logout             登出并清除 Token
+      --status             查看登录状态
+
+缓存与保存:
+      --clean [sfw|nsfw]   清除缓存（不填 = 全部）
+  -s, --save [PATH]        保存上一张图片（默认 ~/Pictures/fwaifu）
+
+其他:
+  -h, --help               显示本帮助
+      --update             检查更新
+      --version            显示版本
+      --completion <SHELL>  生成 Shell 补全 (bash/zsh/fish)
+
+配置:  ~/.config/fwaifu/config.toml
+环境:  FWAIFU_PROXY
+优先级: CLI 参数 > 环境变量 > 配置文件
+图片源: Nekos.moe (https://nekos.moe)
+
+所有选项后可附加 fastfetch 原生参数，如:
+  fwaifu --logo-width 30 --pipe false
 """
