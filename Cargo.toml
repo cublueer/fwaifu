@@ -3,6 +3,11 @@ name = "fwaifu"
 version = "1.0.0"
 edition = "2024"
 license = "MIT"
+description = "Terminal anime girl viewer powered by fastfetch — display random anime images alongside system info"
+repository = "https://github.com/cublueer/fwaifu"
+homepage = "https://github.com/cublueer/fwaifu"
+keywords = ["terminal", "anime", "fastfetch", "cli", "image"]
+readme = "README.md"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -14,3 +19,16 @@ toml = "0.8"
 dirs = "5"
 rand = "0.8"
 libc = "0.2"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/fwaifu-{ version }-{ target }{ archive-suffix }"
+bin-dir = "fwaifu/{ bin }{ binary-ext }"
+
+[package.metadata.binstall.overrides.x86_64-unknown-linux-gnu]
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-unknown-linux-musl]
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.aarch64-unknown-linux-gnu]
+pkg-fmt = "tgz"
