@@ -9,10 +9,8 @@ NC='\033[0m'
 
 BIN_NAME="fwaifu"
 REPO_URL="https://github.com/cublueer/fwaifu"
-INSTALL_DIR="/opt/fwaifu"
-LOCAL_BIN_DIR="${HOME}/.local/bin"
+INSTALL_DIR="/usr/bin"
 BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
-SYMLINK_PATH="${LOCAL_BIN_DIR}/${BIN_NAME}"
 
 # --- 1. Check cargo exists ---
 if ! command -v cargo >/dev/null 2>&1; then
@@ -40,9 +38,6 @@ already_installed=0
 if [ -f "$BIN_PATH" ]; then
     already_installed=1
     printf '%b\n' "${YELLOW}Found existing installation at ${BIN_PATH}${NC}"
-elif [ -h "$SYMLINK_PATH" ] && [ "$(readlink "$SYMLINK_PATH")" = "$BIN_PATH" ]; then
-    already_installed=1
-    printf '%b\n' "${YELLOW}Found existing symlink at ${SYMLINK_PATH} -> ${BIN_PATH}${NC}"
 fi
 
 if [ "$already_installed" -eq 1 ]; then
@@ -78,7 +73,7 @@ printf '%b\n' "${GREEN}Building ${BIN_NAME} (this may take a while)...${NC}"
     exit 1
 }
 
-# --- 5. Install binary to /opt/fwaifu/ ---
+# --- 5. Install binary to /usr/bin/ ---
 if ! command -v sudo >/dev/null 2>&1; then
     printf '%b\n' "${RED}Error: sudo is required to install to ${INSTALL_DIR} but is not available.${NC}" >&2
     exit 1
@@ -89,21 +84,6 @@ sudo mkdir -p "$INSTALL_DIR" && sudo cp "$TMP_DIR/fwaifu/target/release/$BIN_NAM
     printf '%b\n' "${RED}Error: Failed to install to ${INSTALL_DIR}. Permission denied or sudo failed.${NC}" >&2
     exit 1
 }
-
-# --- 6. Create symlink in ~/.local/bin/ ---
-mkdir -p "$LOCAL_BIN_DIR"
-ln -sf "$BIN_PATH" "$SYMLINK_PATH"
-printf '%b\n' "${GREEN}Symlink created: ${SYMLINK_PATH} -> ${BIN_PATH}${NC}"
-
-# --- 7. PATH check ---
-case ":$PATH:" in
-    *:"$LOCAL_BIN_DIR":*)
-        ;;
-    *)
-        printf '%b\n' "${YELLOW}Warning: ${LOCAL_BIN_DIR} is not in your PATH${NC}"
-        printf '%b\n' "Add to your shell config: export PATH=\"${LOCAL_BIN_DIR}:\$PATH\""
-        ;;
-esac
 
 # --- 8. Print usage ---
 printf '\n%b\n' "${GREEN}Installation complete!${NC}"

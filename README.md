@@ -32,6 +32,16 @@ curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | b
 cargo install fwaifu
 ```
 
+## 卸载 / Uninstallation
+
+```bash
+# 一键卸载
+curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/uninstall.sh | bash
+
+# 或手动执行
+sudo rm /usr/bin/fwaifu
+```
+
 ## 使用 / Usage
 
 ### 基本用法
