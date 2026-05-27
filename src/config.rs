@@ -17,6 +17,8 @@ pub struct Config {
     pub min_trigger_limit: u32,
     pub max_used_limit: u32,
     pub clean_cache: bool,
+    pub save_path_sfw: Option<String>,
+    pub save_path_nsfw: Option<String>,
     pub fastfetch_args: Vec<String>,
 }
 
@@ -36,6 +38,8 @@ impl Default for Config {
             min_trigger_limit: 60,
             max_used_limit: 50,
             clean_cache: true,
+            save_path_sfw: None,
+            save_path_nsfw: None,
             fastfetch_args: Vec::new(),
         }
     }
@@ -53,6 +57,8 @@ struct FileConfig {
     download: FileDownloadConfig,
     #[serde(default)]
     cache: FileCacheConfig,
+    save_path_sfw: Option<String>,
+    save_path_nsfw: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -128,6 +134,12 @@ fn merge_file_config(config: &mut Config, file: &FileConfig) {
     }
     if let Some(clean_cache) = file.cache.clean_cache {
         config.clean_cache = clean_cache;
+    }
+    if let Some(ref path) = file.save_path_sfw {
+        config.save_path_sfw = Some(path.clone());
+    }
+    if let Some(ref path) = file.save_path_nsfw {
+        config.save_path_nsfw = Some(path.clone());
     }
 }
 

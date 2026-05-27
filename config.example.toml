@@ -51,3 +51,11 @@
 
 # 每次运行后是否清理 fastfetch 缩略图缓存，默认 true
 # clean_cache = true
+
+# ─── 保存 ─────────────────────────────────────────────────────────────
+
+# SFW 图片默认保存路径（--save / -s 不指定路径时使用）
+# save_path_sfw = "~/Pictures/fwaifu"
+
+# NSFW 图片默认保存路径（--save / -s 不指定路径时使用）
+# save_path_nsfw = "~/Pictures/fwaifu"

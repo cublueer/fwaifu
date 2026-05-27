@@ -95,13 +95,47 @@ impl CacheManager {
     /// NSFW format: `waifu_nsfw_{timestamp_nanos}_{random}.jpg`
     pub fn generate_filename(&self, nsfw: bool) -> String {
         let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or(0);
         let random: u32 = rand::random();
 
         let prefix = if nsfw { "waifu_nsfw" } else { "waifu" };
         format!("{prefix}_{nanos}_{random:x}.jpg")
+    }
+
+    /// Clear all cached images for a given mode (both stock and used directories).
+    pub fn clean_all(&self, nsfw: bool) -> std::io::Result<()> {
+        let _ = std::fs::remove_dir_all(self.stock_dir(nsfw));
+        let _ = std::fs::remove_dir_all(self.used_dir(nsfw));
+        std::fs::create_dir_all(self.stock_dir(nsfw))?;
+        std::fs::create_dir_all(self.used_dir(nsfw))?;
+        Ok(())
+    }
+
+    /// Find the most recently displayed image across both SFW and NSFW used directories.
+    ///
+    /// Returns the path and whether it's NSFW, or None if no files exist.
+    pub fn find_last_displayed(&self) -> Option<(PathBuf, bool)> {
+        use std::time::SystemTime;
+
+        let mut all: Vec<(SystemTime, PathBuf, bool)> = Vec::new();
+
+        for (is_nsfw, files) in [
+            (false, list_jpg_files(&self.used_dir(false))),
+            (true, list_jpg_files(&self.used_dir(true))),
+        ] {
+            for p in files {
+                if let Ok(mtime) = std::fs::metadata(&p).and_then(|m| m.modified()) {
+                    all.push((mtime, p, is_nsfw));
+                }
+            }
+        }
+
+        all.sort_by_key(|(t, _, _)| {
+            std::cmp::Reverse(t.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default())
+        });
+        all.into_iter().next().map(|(_, p, nsfw)| (p, nsfw))
     }
 }
 

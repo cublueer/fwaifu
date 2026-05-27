@@ -1,13 +1,6 @@
-use std::io::Write;
+use std::io::{self, Write};
 
 use crate::api::NekosMoeClient;
-
-fn is_chinese() -> bool {
-    std::env::var("LANG")
-        .unwrap_or_default()
-        .to_lowercase()
-        .starts_with("zh")
-}
 
 pub struct AuthManager {
     token_path: std::path::PathBuf,
@@ -52,46 +45,108 @@ impl AuthManager {
 
         let username = {
             let mut buf = String::new();
-            if is_chinese() {
-                print!("请输入 Username: ");
-            } else {
-                print!("Username: ");
-            }
+            print!("{}", crate::i18n::t("prompt.username"));
             stdout.flush()?;
             stdin.read_line(&mut buf)?;
             buf.trim().to_string()
         };
 
-        let password = {
-            let prompt = if is_chinese() {
-                "请输入 Password: "
-            } else {
-                "Password: "
-            };
-            rpassword::prompt_password(prompt)?
-                .trim()
-                .to_string()
-        };
+        let password = read_password_with_stars(crate::i18n::t("prompt.password"))?;
 
         match client.login(&username, &password).await {
             Ok(token) => {
                 self.save_token(&token)?;
-                if is_chinese() {
-                    println!("\n✅ 登录成功！");
-                } else {
-                    println!("\n✅ Login successful!");
-                }
+                println!("\n{}", crate::i18n::t("msg.login_success"));
                 Ok(())
             }
             Err(e) => {
-                if is_chinese() {
-                    println!("\n❌ 登录失败：{e}");
-                } else {
-                    println!("\n❌ Login failed: {e}");
-                }
+                println!("\n{}", crate::i18n::tf("msg.login_failed", &[&e.to_string()]));
                 Err(e)
             }
         }
     }
+}
+
+/// Read a password from the terminal, displaying `●` for each character.
+///
+/// Enables raw terminal mode (no echo, no line buffering) to capture
+/// individual keystrokes. Restores the original terminal settings on exit
+/// (even on panic).
+fn read_password_with_stars(prompt: &str) -> io::Result<String> {
+    let mut stdout = io::stdout();
+    write!(stdout, "{prompt}")?;
+    stdout.flush()?;
+
+    // ── Save original terminal settings ──
+    let stdin_fd = libc::STDIN_FILENO;
+    let termios_orig = unsafe {
+        let mut t = std::mem::zeroed::<libc::termios>();
+        if libc::tcgetattr(stdin_fd, &mut t) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        t
+    };
+
+    // ── Switch to raw mode: disable canonical (line-buffered) and echo ──
+    let mut termios_raw = termios_orig;
+    termios_raw.c_lflag &= !(libc::ICANON | libc::ECHO);
+    termios_raw.c_cc[libc::VMIN] = 1;
+    termios_raw.c_cc[libc::VTIME] = 0;
+    if unsafe { libc::tcsetattr(stdin_fd, libc::TCSANOW, &termios_raw) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+
+    // ── Restore original terminal on scope exit ──
+    struct RestoreTerminal {
+        termios: libc::termios,
+        fd: libc::c_int,
+    }
+    impl Drop for RestoreTerminal {
+        fn drop(&mut self) {
+            unsafe {
+                libc::tcsetattr(self.fd, libc::TCSANOW, &self.termios);
+            }
+        }
+    }
+    let _restore = RestoreTerminal {
+        termios: termios_orig,
+        fd: stdin_fd,
+    };
+
+    // ── Read characters one at a time ──
+    let mut password = String::new();
+    let mut buf = [0u8; 1];
+
+    loop {
+        let n = unsafe { libc::read(stdin_fd, buf.as_mut_ptr() as *mut libc::c_void, 1) };
+        if n <= 0 {
+            break;
+        }
+
+        match buf[0] {
+            b'\n' | b'\r' => break,
+            0x7f | b'\x08' => {
+                if !password.is_empty() {
+                    password.pop();
+                    write!(stdout, "\x08 \x08")?;
+                    stdout.flush()?;
+                }
+            }
+            0x03 => {
+                write!(stdout, "^C\n")?;
+                stdout.flush()?;
+                std::process::exit(1);
+            }
+            b if b.is_ascii_graphic() || b == b' ' => {
+                password.push(b as char);
+                stdout.write_all("●".as_bytes())?;
+                stdout.flush()?;
+            }
+            _ => {}
+        }
+    }
+
+    writeln!(stdout)?;
+    Ok(password)
 }
 

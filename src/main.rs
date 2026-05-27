@@ -8,6 +8,7 @@ mod downloader;
 mod image;
 mod runner;
 mod watch;
+mod i18n;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -17,81 +18,8 @@ use clap::Parser;
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
-fn is_chinese() -> bool {
-    std::env::var("LANG")
-        .unwrap_or_default()
-        .to_lowercase()
-        .starts_with("zh")
-}
-
 fn print_help() {
-    if is_chinese() {
-        println!("========================================================");
-        println!("    fwaifu - 随机二次元美少女生成器暨 Fastfetch 终端看板娘");
-        println!("========================================================");
-        println!();
-        println!("用法模式：");
-        println!("  fwaifu              标准模式。随机生成一张 SFW 美少女图片同时显示系统信息。");
-        println!("  fwaifu -n / --nsfw  NSFW 模式。显示 NSFW 图片（需要先 --login 登录）。");
-        println!("  fwaifu -w / --watch 持续轮播模式。每 N 秒刷新，适合挂在副屏当作动态看板娘。");
-        println!("  fwaifu -w -n         持续 NSFW 轮播模式。");
-        println!();
-        println!("选项：");
-        println!("  -h, --help                  显示本帮助信息");
-        println!("  -n, --nsfw                  启用 NSFW 模式");
-        println!("  -w, --watch                 启用轮播模式");
-        println!("  --watch-interval <SECONDS>  轮播间隔秒数 (默认 5)");
-        println!("  -p, --proxy <URL>           设置代理地址 (如 http://127.0.0.1:7890)");
-        println!("  --no-crop                   关闭图片裁剪");
-        println!("  --crop-width <WIDTH>        裁剪目标宽度 (默认 600)");
-        println!("  --crop-height <HEIGHT>      裁剪目标高度 (默认 800)");
-        println!("  --logo-width <WIDTH>        Fastfetch 图片展示宽度 (默认 40)");
-        println!("  --login                     交互式登录 Nekos.moe，保存 Token");
-        println!("  --logout                    登出并清除本地 Token 文件");
-        println!("  --status                    显示登录状态");
-        println!("  --version                   显示版本信息");
-        println!();
-        println!("配置：");
-        println!("  配置文件:   ~/.config/fwaifu/config.toml");
-        println!("  环境变量:   FWAIFU_PROXY");
-        println!("  优先级:     CLI 参数 > 环境变量 > 配置文件");
-        println!();
-        println!("图片源： Nekos.moe API (https://nekos.moe)");
-        println!("========================================================");
-    } else {
-        println!("========================================================");
-        println!("    fwaifu - Random Anime Girl Generator for Terminal");
-        println!("========================================================");
-        println!();
-        println!("Usage Modes:");
-        println!("  fwaifu              Standard mode. Shows a random SFW anime girl with system info.");
-        println!("  fwaifu -n / --nsfw  NSFW mode. Shows NSFW images (requires --login first).");
-        println!("  fwaifu -w / --watch Continuous watch mode. Refreshes every N seconds, great for a secondary monitor.");
-        println!("  fwaifu -w -n         Continuous NSFW watch mode.");
-        println!();
-        println!("Options:");
-        println!("  -h, --help                  Show this help message");
-        println!("  -n, --nsfw                  Enable NSFW mode");
-        println!("  -w, --watch                 Enable watch mode");
-        println!("  --watch-interval <SECONDS>  Watch interval in seconds (default 5)");
-        println!("  -p, --proxy <URL>           Set proxy URL (e.g. http://127.0.0.1:7890)");
-        println!("  --no-crop                   Disable image cropping");
-        println!("  --crop-width <WIDTH>        Crop target width (default 600)");
-        println!("  --crop-height <HEIGHT>      Crop target height (default 800)");
-        println!("  --logo-width <WIDTH>        Fastfetch logo display width (default 40)");
-        println!("  --login                     Interactive login to Nekos.moe (saves token)");
-        println!("  --logout                    Logout and clear stored token");
-        println!("  --status                    Show login status");
-        println!("  --version                   Show version information");
-        println!();
-        println!("Configuration:");
-        println!("  Config file:  ~/.config/fwaifu/config.toml");
-        println!("  Environment:  FWAIFU_PROXY");
-        println!("  Priority:     CLI args > Environment > Config file");
-        println!();
-        println!("Image source: Nekos.moe API (https://nekos.moe)");
-        println!("========================================================");
-    }
+    print!("{}", i18n::t("help.text"));
 }
 
 fn command_exists(cmd: &str) -> bool {
@@ -235,7 +163,7 @@ async fn run_daemon(
         .join("fwaifu");
     let cache = Arc::new(cache::CacheManager::new(cache_dir));
     if let Err(e) = cache.init() {
-        eprintln!("Daemon: failed to init cache: {e}");
+        eprintln!("{}", i18n::tf("error.daemon_cache_failed", &[&e.to_string()]));
         daemon::cleanup_daemon();
         std::process::exit(1);
     }
@@ -384,18 +312,10 @@ async fn run_one_cycle(
         // Background replenisher handles stock refill — no spawn here.
     } else {
         // ── Stock empty: download one image on demand ──
-        if is_chinese() {
-            println!("库存不够啦！正在去搬运新的图片，请稍等哦...");
-        } else {
-            println!("Not enough stock! Fetching new images, please wait...");
-        }
+        println!("{}", i18n::t("msg.stock_empty"));
 
         if !downloader::check_network(&direct_client).await {
-            if is_chinese() {
-                println!("网络好像不太通畅，无法下载新图片 QAQ");
-            } else {
-                println!("Network seems unreachable, can't download new images QAQ");
-            }
+            println!("{}", i18n::t("msg.network_error"));
             let _ = runner::run_fastfetch_default(&config.fastfetch_args);
             return;
         }
@@ -450,13 +370,22 @@ async fn run_one_cycle(
         {
             Ok(()) => {}
             Err(e) => {
-                eprintln!("fastfetch error: {e}");
+                eprintln!("{}", i18n::tf("error.fastfetch_error", &[&e.to_string()]));
                 let _ = runner::run_fastfetch_default(&config.fastfetch_args);
             }
         }
 
         // Move the used image to the used directory
         let _ = cache.move_to_used(&selected_path, nsfw);
+
+        // Touch the used file so find_last_displayed() can find it
+        if let Some(filename) = selected_path.file_name() {
+            let used_path = cache.used_dir(nsfw).join(filename);
+            let _ = std::fs::OpenOptions::new()
+                .write(true)
+                .open(&used_path)
+                .and_then(|f| f.set_modified(std::time::SystemTime::now()));
+        }
 
         // Cleanup old used images
         let _ = cache.cleanup_used(nsfw, config.max_used_limit);
@@ -477,11 +406,7 @@ async fn run_one_cycle(
 
 /// Common fallback: print message and show the default fastfetch logo.
 fn fallback_default(fastfetch_args: &[String]) {
-    if is_chinese() {
-        println!("图片获取失败了，这次只能先显示默认的 Logo 啦 QAQ");
-    } else {
-        println!("Failed to get an image, showing default logo this time QAQ");
-    }
+    println!("{}", i18n::t("msg.image_failed"));
     let _ = runner::run_fastfetch_default(fastfetch_args);
 }
 
@@ -519,14 +444,85 @@ async fn main() {
     if let Some(ref proxy_url) = config.proxy
         && (!proxy_url.starts_with("http://") && !proxy_url.starts_with("https://"))
     {
-        eprintln!("Invalid proxy URL: {proxy_url}");
-        eprintln!("Proxy must start with http:// or https://");
+        eprintln!("{}", i18n::tf("error.proxy_invalid", &[proxy_url]));
+        eprintln!("{}", i18n::t("error.proxy_requires_http"));
         std::process::exit(1);
+    }
+
+    // Handle --clean
+    if let Some(ref target) = cli.clean {
+        let is_nsfw = match target.to_lowercase().as_str() {
+            "nsfw" => true,
+            "sfw" => false,
+            _ => {
+                eprintln!("{}", i18n::tf("error.clean_invalid", &[target]));
+                std::process::exit(1);
+            }
+        };
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("/tmp"))
+            .join("fwaifu");
+        let cache = cache::CacheManager::new(cache_dir);
+        if let Err(e) = cache.clean_all(is_nsfw) {
+            eprintln!("{}", i18n::tf("error.cache_init_failed", &[&e.to_string()]));
+            std::process::exit(1);
+        }
+        println!("{}", if is_nsfw { i18n::t("msg.clean_nsfw") } else { i18n::t("msg.clean_sfw") });
+        return;
+    }
+
+    // Handle --save / -s
+    if let Some(ref save_arg) = cli.save {
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("/tmp"))
+            .join("fwaifu");
+        let cache = cache::CacheManager::new(cache_dir);
+
+        let (src, is_nsfw) = match cache.find_last_displayed() {
+            Some(result) => result,
+            None => {
+                println!("{}", i18n::t("msg.no_image_to_save"));
+                return;
+            }
+        };
+
+        let save_dir = if save_arg == "__DEFAULT__" {
+            // Use type-specific config, with shared fallback
+            let default_dir = || {
+                dirs::picture_dir()
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .join("fwaifu")
+            };
+            let cfg_path = if is_nsfw {
+                config.save_path_nsfw.as_deref()
+            } else {
+                config.save_path_sfw.as_deref()
+            };
+            cfg_path.map(PathBuf::from).unwrap_or_else(default_dir)
+        } else {
+            PathBuf::from(save_arg)
+        };
+
+        let filename = src.file_name()
+            .unwrap_or_else(|| std::ffi::OsStr::new("unknown.jpg"));
+        let dest = save_dir.join(filename);
+
+        match std::fs::create_dir_all(&save_dir)
+            .and_then(|_| std::fs::copy(&src, &dest))
+        {
+            Ok(_) => {
+                println!("{}", i18n::tf("msg.image_saved", &[&dest.display().to_string()]));
+            }
+            Err(e) => {
+                eprintln!("{}", i18n::tf("error.save_failed", &[&e.to_string()]));
+            }
+        }
+        return;
     }
 
     // Check that fastfetch is installed before doing anything
     if !command_exists("fastfetch") {
-        eprintln!("fastfetch is not installed or not found on PATH.");
+        eprintln!("{}", i18n::t("error.fastfetch_not_found"));
         std::process::exit(1);
     }
 
@@ -543,17 +539,9 @@ async fn main() {
             .is_some_and(|s| !s.is_empty());
 
         if logged_in {
-            if is_chinese() {
-                println!("✅ 已登录 Nekos.moe");
-            } else {
-                println!("✅ Logged in to Nekos.moe");
-            }
+            println!("{}", i18n::t("msg.logged_in"));
         } else {
-            if is_chinese() {
-                println!("❌ 未登录 Nekos.moe");
-            } else {
-                println!("❌ Not logged in to Nekos.moe");
-            }
+            println!("{}", i18n::t("msg.not_logged_in"));
         }
         return;
     }
@@ -572,7 +560,7 @@ async fn main() {
         auth_manager
             .interactive_login(&login_client)
             .await
-            .unwrap_or_else(|e| eprintln!("Login error: {e}"));
+            .unwrap_or_else(|e| eprintln!("{}", i18n::tf("error.login_error", &[&e.to_string()])));
         return;
     }
 
@@ -586,18 +574,10 @@ async fn main() {
         let auth_manager = auth::AuthManager::new(token_path);
         match auth_manager.clear_token() {
             Ok(()) => {
-                if is_chinese() {
-                    println!("✅ 已登出，Token 已清除。");
-                } else {
-                    println!("✅ Logged out. Token cleared.");
-                }
+                println!("{}", i18n::t("msg.logged_out"));
             }
             Err(e) => {
-                if is_chinese() {
-                    eprintln!("⚠️ 清除 Token 失败：{e}");
-                } else {
-                    eprintln!("⚠️ Failed to clear token: {e}");
-                }
+                eprintln!("{}", i18n::tf("msg.token_clear_failed", &[&e.to_string()]));
             }
         }
         return;
@@ -639,7 +619,7 @@ async fn main() {
 
     // 8. Initialize cache directories
     if let Err(e) = cache.init() {
-        eprintln!("Warning: failed to initialize cache directories: {e}");
+        eprintln!("{}", i18n::tf("error.cache_init_failed", &[&e.to_string()]));
     }
 
     // 9. Build the run_one_cycle closure (clones captured state on each call for watch mode)

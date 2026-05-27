@@ -55,6 +55,14 @@ pub struct Cli {
     #[arg(long, hide = true, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub daemon: bool,
 
+    /// Clear cache (sfw or nsfw)
+    #[arg(long)]
+    pub clean: Option<String>,
+
+    /// Save the last displayed image (optional path, defaults to config or ~/Pictures/fwaifu)
+    #[arg(short = 's', long, num_args = 0..=1, default_missing_value = "__DEFAULT__")]
+    pub save: Option<String>,
+
     /// Trailing positional args passed through to fastfetch
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub fastfetch_args: Vec<String>,
