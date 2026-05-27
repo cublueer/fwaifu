@@ -22,6 +22,27 @@
 - [fastfetch](https://github.com/fastfetch-cli/fastfetch)（必需）
 - [ImageMagick](https://imagemagick.org)（可选，用于裁剪）
 
+## 安装 / Installation
+
+### 通用（Linux）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash
+```
+
+### Arch Linux
+
+```bash
+cd archlinux && makepkg -si
+```
+
+### Rust 用户
+
+```bash
+cargo install fwaifu      # 源码编译
+cargo binstall fwaifu     # 直接安装二进制
+```
+
 ## 使用 / Usage
 
 ### 基本用法
