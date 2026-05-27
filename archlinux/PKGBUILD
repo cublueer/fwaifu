@@ -10,7 +10,7 @@ url="https://github.com/cublueer/fwaifu"
 license=('MIT')
 depends=('fastfetch')
 optdepends=('imagemagick: for image cropping')
-makedepends=('cargo' 'git')
+makedepends=('rust' 'git')
 source=("${pkgname}::git+https://github.com/cublueer/fwaifu.git#tag=v${pkgver}")
 sha256sums=('SKIP')
 
