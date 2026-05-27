@@ -28,10 +28,7 @@
 # 一键安装
 curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash
 
-# Arch Linux
-cd archlinux && makepkg -si
-
-# crates.io
+# rust编译安装
 cargo install fwaifu
 ```
 
