@@ -16,6 +16,8 @@
 - 登录 Nekos.moe 后解锁 NSFW 内容
 - `-s / --save` 保存上一次展示的图片
 - `--clean` 清除缓存
+- `--update` 检查并提示更新
+- `--completion` 生成 Shell 补全脚本 (bash/zsh/fish)
 
 ## 依赖 / Requirements
 
@@ -32,6 +34,8 @@ curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | b
 cargo install fwaifu
 ```
 
+安装后即可使用，无需额外配置 PATH（二进制位于 `/usr/bin/fwaifu`）。Shell 补全（bash/zsh/fish）会在安装时自动配置。
+
 ## 卸载 / Uninstallation
 
 ```bash
@@ -44,9 +48,11 @@ sudo rm /usr/bin/fwaifu
 
 ### Shell 补全
 
+安装脚本会自动配置补全。以下为手动安装方式：
+
 ```bash
-# bash (需要 root)
-sudo sh -c "fwaifu --completion bash > /etc/bash_completion.d/fwaifu"
+# bash
+fwaifu --completion bash > ~/.local/share/bash-completion/completions/fwaifu
 
 # zsh
 mkdir -p ~/.zsh/completion
@@ -93,28 +99,45 @@ fwaifu --clean sfw        # 清除 SFW 缓存
 fwaifu --clean nsfw       # 清除 NSFW 缓存
 ```
 
+### 更新
+
+```bash
+fwaifu --update           # 检查并提示更新
+```
+
 ### 全部选项
 
-```
--h, --help                  帮助
--n, --nsfw                  启用 NSFW
--w, --watch                 轮播模式
---watch-interval <SECONDS>  轮播间隔（秒，默认 5）
--p, --proxy <URL>           代理地址
---no-crop                   禁用裁剪
---crop-width <WIDTH>        裁剪宽度（默认 600）
---crop-height <HEIGHT>      裁剪高度（默认 800）
---logo-width <WIDTH>        fastfetch 图片宽度（默认 40）
---login                     登录
---logout                    登出
---status                    登录状态
--s, --save [PATH]           保存上一张图片
---clean [sfw|nsfw]          清除缓存
---version                   版本信息
+**模式选项:**
+  -n, --nsfw               启用 NSFW 模式
+  -w, --watch              启用轮播模式
+      --watch-interval <秒> 轮播间隔（默认 5）
+
+**网络选项:**
+  -p, --proxy <URL>        代理地址
+
+**显示选项:**
+      --no-crop            禁用裁剪
+      --crop-width <宽>    裁剪宽度（默认 600）
+      --crop-height <高>   裁剪高度（默认 800）
+      --logo-width <宽>    fastfetch 图片宽度（默认 40）
+
+**账户选项:**
+      --login              登录 Nekos.moe
+      --logout             登出
+      --status             查看登录状态
+
+**缓存与保存:**
+      --clean [sfw|nsfw]   清除缓存
+  -s, --save [PATH]        保存上一张图片
+
+**其他:**
+  -h, --help               帮助
+      --update             检查更新
+      --version            版本
+      --completion <SHELL>  生成 Shell 补全
 
 所有选项之后可直接附加 fastfetch 原生参数，如：
 fwaifu --logo-width 30 --pipe false
-```
 
 ## 配置 / Configuration
 
