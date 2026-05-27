@@ -24,23 +24,15 @@
 
 ## 安装 / Installation
 
-### 通用（Linux）
-
 ```bash
+# 一键安装
 curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash
-```
 
-### Arch Linux
-
-```bash
+# Arch Linux
 cd archlinux && makepkg -si
-```
 
-### 通过Rust安装
-
-```bash
-cargo install fwaifu      # 源码编译
-cargo binstall fwaifu     # 直接安装二进制
+# crates.io
+cargo install fwaifu
 ```
 
 ## 使用 / Usage

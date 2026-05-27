@@ -1,7 +1,7 @@
 # Maintainer: fwaifu contributors
 # Install: makepkg -si
 
-pkgname=fwaifu-bin
+pkgname=fwaifu
 pkgver=1.0.0
 pkgrel=1
 pkgdesc="Terminal anime girl viewer powered by fastfetch"
@@ -10,9 +10,16 @@ url="https://github.com/cublueer/fwaifu"
 license=('MIT')
 depends=('fastfetch')
 optdepends=('imagemagick: for image cropping')
-source=("https://github.com/cublueer/fwaifu/releases/download/v${pkgver}/fwaifu-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
+makedepends=('cargo' 'git')
+source=("${pkgname}::git+https://github.com/cublueer/fwaifu.git#tag=v${pkgver}")
 sha256sums=('SKIP')
 
+build() {
+    cd "$pkgname"
+    cargo build --release
+}
+
 package() {
-    install -Dm755 "$srcdir/fwaifu" "$pkgdir/usr/bin/fwaifu"
+    cd "$pkgname"
+    install -Dm755 "target/release/${pkgname}" "$pkgdir/usr/bin/${pkgname}"
 }

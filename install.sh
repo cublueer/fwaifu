@@ -1,93 +1,116 @@
 #!/bin/sh
 set -e
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-REPO="cublueer/fwaifu"
 BIN_NAME="fwaifu"
-DEFAULT_VERSION="1.0.0"
-VERSION="${1:-v${DEFAULT_VERSION}}"
-VERSION_NUM="${VERSION#v}"
+REPO_URL="https://github.com/cublueer/fwaifu"
+CARGO_BIN_DIR="${CARGO_HOME:-$HOME/.cargo}/bin"
 
-# --- Architecture detection ---
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64|amd64)  TARGET="x86_64-unknown-linux-gnu" ;;
-    aarch64|arm64) TARGET="aarch64-unknown-linux-gnu" ;;
-    *)
-        printf '%b\n' "${RED}Error: Unsupported architecture: $ARCH${NC}" >&2
-        exit 1
-        ;;
-esac
-
-# --- Musl detection (Alpine Linux) ---
-if ldd --version 2>&1 | grep -qi musl 2>/dev/null; then
-    TARGET="${TARGET%-gnu}-musl"
+# --- Check Rust toolchain ---
+if ! command -v cargo >/dev/null 2>&1; then
+    printf '%b\n' "${RED}Error: Rust toolchain not found (cargo command missing)${NC}" >&2
+    printf '%b\n' "Install Rust: ${YELLOW}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh${NC}"
+    exit 1
 fi
 
-printf '%b\n' "${GREEN}Installing ${BIN_NAME} ${VERSION} for ${TARGET}...${NC}"
+# --- Check system dependencies ---
+missing_fastfetch=0
+if ! command -v fastfetch >/dev/null 2>&1; then
+    missing_fastfetch=1
+    printf '%b\n' "${YELLOW}Warning: fastfetch is not installed (required dependency)${NC}"
+    printf '%b\n' "  Install: https://github.com/fastfetch-cli/fastfetch"
+fi
 
-# --- Download URL ---
-URL="https://github.com/${REPO}/releases/download/${VERSION}/fwaifu-${VERSION_NUM}-${TARGET}.tar.gz"
-TMP_DIR=$(mktemp -d)
-TAR_FILE="${TMP_DIR}/fwaifu.tar.gz"
+has_imagemagick=0
+if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
+    has_imagemagick=1
+    printf '%b\n' "${GREEN}ImageMagick detected (optional: image cropping support)${NC}"
+fi
 
-cleanup() {
-    rm -rf "$TMP_DIR"
-}
-trap cleanup EXIT
+# --- Check if already installed ---
+if command -v "$BIN_NAME" >/dev/null 2>&1; then
+    existing_path=$(command -v "$BIN_NAME")
+    printf '%b\n' "${YELLOW}${BIN_NAME} is already installed at: ${existing_path}${NC}"
+    printf '%s' "Reinstall? [y/N] "
+    read -r REPLY
+    case "$REPLY" in
+        [Yy]|[Yy][Ee][Ss])
+            printf '%b\n' "${GREEN}Proceeding with reinstall...${NC}"
+            ;;
+        *)
+            printf '%b\n' "${GREEN}Skipping installation.${NC}"
+            exit 0
+            ;;
+    esac
+fi
 
-# --- Download ---
-printf '%b\n' "Downloading from ${URL}..."
-if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$URL" -o "$TAR_FILE"
-elif command -v wget >/dev/null 2>&1; then
-    wget -q "$URL" -O "$TAR_FILE"
+# --- Install from source ---
+printf '%b\n' "${GREEN}Installing ${BIN_NAME} from source via cargo...${NC}"
+
+if cargo install --git "$REPO_URL"; then
+    printf '%b\n' "${GREEN}Installed successfully to ${CARGO_BIN_DIR}/${BIN_NAME}${NC}"
 else
-    printf '%b\n' "${RED}Error: curl or wget required${NC}" >&2
-    exit 1
+    # Primary install failed — offer fallback
+    printf '%b\n' "${RED}Installation via 'cargo install --git' failed.${NC}"
+    printf '%s' "${YELLOW}Try fallback (clone repo and build locally)? [Y/n] ${NC}"
+    read -r REPLY
+    case "$REPLY" in
+        [Nn]|[Nn][Oo])
+            printf '%b\n' "${RED}Installation aborted.${NC}" >&2
+            exit 1
+            ;;
+    esac
+
+    TMP_DIR=$(mktemp -d)
+    cleanup() { rm -rf "$TMP_DIR"; }
+    trap cleanup EXIT
+
+    printf '%b\n' "${GREEN}Cloning ${REPO_URL}...${NC}"
+    git clone "$REPO_URL" "$TMP_DIR/fwaifu" || {
+        printf '%b\n' "${RED}Failed to clone repository.${NC}" >&2
+        exit 1
+    }
+
+    printf '%b\n' "${GREEN}Building and installing from local source...${NC}"
+    if ! (cd "$TMP_DIR/fwaifu" && cargo install --path .); then
+        printf '%b\n' "${RED}Fallback installation also failed.${NC}" >&2
+        exit 1
+    fi
+
+    printf '%b\n' "${GREEN}Installed successfully to ${CARGO_BIN_DIR}/${BIN_NAME}${NC}"
 fi
-
-# --- Extract ---
-printf '%b\n' "Extracting..."
-tar xzf "$TAR_FILE" -C "$TMP_DIR"
-
-# --- Locate binary (handles nested archive layouts) ---
-BIN_PATH=$(find "$TMP_DIR" -name "$BIN_NAME" -type f | head -1)
-if [ -z "$BIN_PATH" ]; then
-    printf '%b\n' "${RED}Error: binary '${BIN_NAME}' not found in archive${NC}" >&2
-    exit 1
-fi
-
-# --- Install ---
-INSTALL_DIR="${HOME}/.local/bin"
-mkdir -p "$INSTALL_DIR"
-cp -f "$BIN_PATH" "${INSTALL_DIR}/${BIN_NAME}"
-chmod +x "${INSTALL_DIR}/${BIN_NAME}"
-
-printf '%b\n' "${GREEN}Installed to ${INSTALL_DIR}/${BIN_NAME}${NC}"
 
 # --- PATH check ---
 case ":$PATH:" in
-    *:"$INSTALL_DIR":*) ;;
+    *:"$CARGO_BIN_DIR":*) ;;
     *)
-        printf '%b\n' "${YELLOW}Warning: ${INSTALL_DIR} is not in your PATH${NC}"
-        printf '%b\n' "Add this to your shell config: export PATH=\"\$HOME/.local/bin:\$PATH\""
+        printf '%b\n' "${YELLOW}Warning: ${CARGO_BIN_DIR} is not in your PATH${NC}"
+        printf '%b\n' "Add this to your shell config: export PATH=\"${CARGO_BIN_DIR}:\$PATH\""
         ;;
 esac
 
-# --- Post-install ---
-cat <<EOF
+# --- Post-install usage hints ---
+printf '\n%b\n' "${GREEN}Installation complete!${NC}"
+printf '\n%b\n' "${YELLOW}Usage:${NC}"
+printf '%b\n' "  ${BIN_NAME}              Show a random anime image + system info"
+printf '%b\n' "  ${BIN_NAME} --help      Show all options"
+printf '%b\n' "  ${BIN_NAME} --version   Show version"
+printf '\n%b\n' "${YELLOW}Dependencies:${NC}"
 
-${GREEN}Installation complete!${NC}
+if [ "$missing_fastfetch" -eq 1 ]; then
+    printf '%b\n' "  Required: fastfetch ${RED}(not found)${NC}"
+else
+    printf '%b\n' "  Required: fastfetch ${GREEN}(found)${NC}"
+fi
 
-${YELLOW}Dependencies:${NC}
-  Required: fastfetch (https://github.com/fastfetch-cli/fastfetch)
-  Optional: ImageMagick (for image cropping)
+if [ "$has_imagemagick" -eq 1 ]; then
+    printf '%b\n' "  Optional: ImageMagick ${GREEN}(found)${NC}"
+else
+    printf '%b\n' "  Optional: ImageMagick (not installed — image cropping unavailable)"
+fi
 
-Verify installation: ${BIN_NAME} --version
-EOF
+printf '\n%b\n' "Config: ~/.config/fwaifu/config.toml"

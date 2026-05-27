@@ -20,15 +20,3 @@ dirs = "5"
 rand = "0.8"
 libc = "0.2"
 
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/fwaifu-{ version }-{ target }{ archive-suffix }"
-bin-dir = "fwaifu/{ bin }{ binary-ext }"
-
-[package.metadata.binstall.overrides.x86_64-unknown-linux-gnu]
-pkg-fmt = "tgz"
-
-[package.metadata.binstall.overrides.x86_64-unknown-linux-musl]
-pkg-fmt = "tgz"
-
-[package.metadata.binstall.overrides.aarch64-unknown-linux-gnu]
-pkg-fmt = "tgz"
