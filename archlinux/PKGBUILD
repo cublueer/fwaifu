@@ -11,19 +11,15 @@ license=('MIT')
 depends=('fastfetch')
 optdepends=('imagemagick: for image cropping')
 makedepends=('rust' 'git')
-source=()
-sha256sums=()
-
-prepare() {
-    cp -r "$startdir"/* "$srcdir/fwaifu"
-}
+source=("${pkgname}::git+https://github.com/cublueer/fwaifu.git#branch=main")
+sha256sums=('SKIP')
 
 build() {
-    cd fwaifu
+    cd "$pkgname"
     cargo build --release
 }
 
 package() {
-    cd fwaifu
+    cd "$pkgname"
     install -Dm755 "target/release/${pkgname}" "$pkgdir/usr/bin/${pkgname}"
 }

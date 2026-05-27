@@ -29,7 +29,7 @@
 curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash
 
 # Arch Linux
-makepkg -si
+cd archlinux && makepkg -si
 
 # crates.io
 cargo install fwaifu
