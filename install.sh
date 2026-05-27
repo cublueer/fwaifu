@@ -7,15 +7,41 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# --- Root user check ---
+if [ "$(id -u)" -eq 0 ]; then
+    printf '%b\n' "${YELLOW}Warning: Running as root is not recommended.${NC}"
+    printf '%b\n' "The build step should run as a regular user."
+    printf '%b' "${YELLOW}Force run as root? Type 'f' to continue, any other key to exit: ${NC}"
+    read -r REPLY
+    case "$REPLY" in
+        [fF]) ;;
+        *)
+            printf '%b\n' "${GREEN}Aborted. Please run without sudo.${NC}"
+            exit 0
+            ;;
+    esac
+fi
+
 BIN_NAME="fwaifu"
 REPO_URL="https://github.com/cublueer/fwaifu"
 INSTALL_DIR="/usr/bin"
 BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
 
-# --- 1. Check cargo exists ---
+# --- 1. Check cargo + Rust toolchain ---
 if ! command -v cargo >/dev/null 2>&1; then
     printf '%b\n' "${RED}Error: Rust toolchain not found (cargo command missing)${NC}" >&2
     printf '%b\n' "Install Rust: ${YELLOW}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh${NC}"
+    exit 1
+fi
+
+# Verify cargo actually works (requires a default toolchain configured).
+# This catches the case where cargo exists (via rustup) but no default
+# toolchain is set. If you see this while running as a regular user,
+# run: rustup default stable
+if ! cargo --version >/dev/null 2>&1; then
+    printf '%b\n' "${RED}Error: cargo found but no Rust toolchain is configured${NC}" >&2
+    printf '%b\n' "  Run: ${YELLOW}rustup default stable${NC} (as your regular user, not as root)"
+    printf '%b\n' "  If you ran this script with sudo, try without sudo — only the final install step needs elevated permissions."
     exit 1
 fi
 
@@ -41,7 +67,7 @@ if [ -f "$BIN_PATH" ]; then
 fi
 
 if [ "$already_installed" -eq 1 ]; then
-    printf '%s' "${YELLOW}Reinstall? [y/N] ${NC}"
+    printf '%b' "${YELLOW}Reinstall? [y/N] ${NC}"
     read -r REPLY
     case "$REPLY" in
         [Yy]|[Yy][Ee][Ss])

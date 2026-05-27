@@ -9,6 +9,10 @@ homepage = "https://github.com/cublueer/fwaifu"
 keywords = ["terminal", "anime", "fastfetch", "cli", "image"]
 readme = "README.md"
 
+[[bin]]
+name = "fwaifu"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
