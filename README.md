@@ -36,7 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | b
 cd archlinux && makepkg -si
 ```
 
-### Rust 用户
+### 通过Rust安装
 
 ```bash
 cargo install fwaifu      # 源码编译
