@@ -22,12 +22,6 @@
 - [fastfetch](https://github.com/fastfetch-cli/fastfetch)（必需）
 - [ImageMagick](https://imagemagick.org)（可选，用于裁剪）
 
-## 安装 / Installation
-
-```bash
-cargo install --path .
-```
-
 ## 使用 / Usage
 
 ### 基本用法
