@@ -22,7 +22,7 @@
 ## 依赖 / Requirements
 
 - [fastfetch](https://github.com/fastfetch-cli/fastfetch)（必需）
-- [ImageMagick](https://imagemagick.org)（可选，用于裁剪）
+- [ImageMagick](https://imagemagick.org)（必需，用于裁剪）
 
 ## 安装 / Installation
 

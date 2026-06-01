@@ -29,6 +29,7 @@ fastfetch_error = "fastfetch 错误：{0}"
 login_error = "登录错误：{0}"
 clean_invalid = "无效的清理目标：{0}，请使用 'sfw'、'nsfw'，或不填清除全部。"
 save_failed = "⚠️ 保存图片失败：{0}"
+imagemagick_not_found = "ImageMagick 未安装，跳过图片裁剪。（使用 --no-crop 禁用裁剪可消除此提示）"
 
 [help]
 text = """

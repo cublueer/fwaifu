@@ -65,8 +65,14 @@ MSG_warn_no_fastfetch_en="${YELLOW}Warning: fastfetch is not installed (required
 MSG_hint_install_fastfetch_zh="  安装: https://github.com/fastfetch-cli/fastfetch"
 MSG_hint_install_fastfetch_en="  Install: https://github.com/fastfetch-cli/fastfetch"
 
-MSG_imagemagick_found_zh="${GREEN}检测到 ImageMagick（可选: 支持图片裁剪）${NC}"
-MSG_imagemagick_found_en="${GREEN}ImageMagick detected (optional: image cropping support)${NC}"
+MSG_imagemagick_found_zh="${GREEN}检测到 ImageMagick（必需: 支持图片裁剪）${NC}"
+MSG_imagemagick_found_en="${GREEN}ImageMagick detected (required: image cropping support)${NC}"
+
+MSG_err_no_imagemagick_zh="${RED}错误: ImageMagick 未安装（必需依赖）。请安装后再试。${NC}"
+MSG_err_no_imagemagick_en="${RED}Error: ImageMagick is not installed (required dependency). Please install it first.${NC}"
+
+MSG_hint_install_imagemagick_zh="  安装: apt install imagemagick  # Debian/Ubuntu"
+MSG_hint_install_imagemagick_en="  Install: apt install imagemagick  # Debian/Ubuntu"
 
 MSG_existing_install_zh="${YELLOW}发现已有安装: ${BIN_PATH}${NC}"
 MSG_existing_install_en="${YELLOW}Found existing installation at ${BIN_PATH}${NC}"
@@ -131,11 +137,8 @@ MSG_ff_required_not_found_en="  Required: fastfetch ${RED}(not found)${NC}"
 MSG_ff_required_found_zh="  必需: fastfetch ${GREEN}(已找到)${NC}"
 MSG_ff_required_found_en="  Required: fastfetch ${GREEN}(found)${NC}"
 
-MSG_im_found_zh="  可选: ImageMagick ${GREEN}(已找到)${NC}"
-MSG_im_found_en="  Optional: ImageMagick ${GREEN}(found)${NC}"
-
-MSG_no_imagemagick_zh="  可选: ImageMagick (未安装——图片裁剪不可用)"
-MSG_no_imagemagick_en="  Optional: ImageMagick (not installed — image cropping unavailable)"
+MSG_im_found_zh="  必需: ImageMagick ${GREEN}(已找到)${NC}"
+MSG_im_found_en="  Required: ImageMagick ${GREEN}(found)${NC}"
 
 MSG_config_path_zh="配置: ~/.config/fwaifu/config.toml"
 MSG_config_path_en="Config: ~/.config/fwaifu/config.toml"
@@ -177,11 +180,12 @@ if ! command -v fastfetch >/dev/null 2>&1; then
     printf '%b\n' "$(t hint_install_fastfetch)"
 fi
 
-has_imagemagick=0
-if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
-    has_imagemagick=1
-    printf '%b\n' "$(t imagemagick_found)"
+if ! command -v magick >/dev/null 2>&1 && ! command -v convert >/dev/null 2>&1; then
+    printf '%b\n' "$(t err_no_imagemagick)" >&2
+    printf '%b\n' "$(t hint_install_imagemagick)"
+    exit 1
 fi
+printf '%b\n' "$(t imagemagick_found)"
 
 # --- 3. Check if already installed ---
 already_installed=0
@@ -274,10 +278,6 @@ else
     printf '%b\n' "$(t ff_required_found)"
 fi
 
-if [ "$has_imagemagick" -eq 1 ]; then
-    printf '%b\n' "$(t im_found)"
-else
-    printf '%b\n' "$(t no_imagemagick)"
-fi
+printf '%b\n' "$(t im_found)"
 
 printf '\n%b\n' "$(t config_path)"

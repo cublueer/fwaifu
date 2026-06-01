@@ -317,9 +317,12 @@ async fn run_one_cycle(
 
     // ── Display the selected image (or fallback) ──
     if let Some(selected_path) = selected {
-        // Crop if configured and ImageMagick is available
-        if config.crop && image::is_imagemagick_available() {
-            let _ = image::crop_image(&selected_path, config.crop_width, config.crop_height);
+        if config.crop {
+            if image::is_imagemagick_available() {
+                let _ = image::crop_image(&selected_path, config.crop_width, config.crop_height);
+            } else {
+                eprintln!("{}", i18n::t("error.imagemagick_not_found"));
+            }
         }
 
         // Run fastfetch with the image

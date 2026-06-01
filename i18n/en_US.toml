@@ -29,6 +29,7 @@ fastfetch_error = "fastfetch error: {0}"
 login_error = "Login error: {0}"
 clean_invalid = "Invalid clean target: {0}. Use 'sfw', 'nsfw', or omit for all."
 save_failed = "⚠️ Failed to save image: {0}"
+imagemagick_not_found = "ImageMagick not found, skipping image crop. (Use --no-crop to suppress this warning)"
 
 [help]
 text = """

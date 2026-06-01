@@ -57,7 +57,7 @@ fn find_imagemagick_cmd() -> Result<String, Box<dyn std::error::Error>> {
     if command_exists("convert") {
         return Ok("convert".to_string());
     }
-    Err("ImageMagick is not installed. Please install it (e.g. `apt install imagemagick` or `brew install imagemagick`).".into())
+    Err("ImageMagick is required but not installed. Install it with `apt install imagemagick` or `brew install imagemagick`.".into())
 }
 
 fn command_exists(cmd: &str) -> bool {
