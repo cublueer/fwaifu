@@ -1,49 +1,171 @@
 #!/bin/sh
 set -e
 
+# --- Language detection (same logic as src/i18n.rs) ---
+detect_lang() {
+    case "${LANG:-}" in
+        zh_*) echo "zh" ;;
+        *)    echo "en" ;;
+    esac
+}
+CUR_LANG=$(detect_lang)
+
+t() {
+    eval "printf '%b' \"\$MSG_${1}_${CUR_LANG}\""
+}
+
+tf() {
+    local key="$1"; shift
+    eval "printf \"\$MSG_${key}_${CUR_LANG}\\n\" \"\$@\""
+}
+
 # --- Colors ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# --- Variables ---
+BIN_NAME="fwaifu"
+INSTALL_DIR="/usr/bin"
+BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# --- Messages ---
+MSG_warn_root_zh="${YELLOW}警告: 不建议以 root 身份运行。${NC}"
+MSG_warn_root_en="${YELLOW}Warning: Running as root is not recommended.${NC}"
+
+MSG_warn_root_detail_zh="编译应在普通用户下进行。"
+MSG_warn_root_detail_en="The build step should run as a regular user."
+
+MSG_prompt_force_root_zh="强制以 root 运行？输入 'f' 继续，其他键退出: "
+MSG_prompt_force_root_en="Force run as root? Type 'f' to continue, any other key to exit: "
+
+MSG_aborted_zh="${GREEN}已取消。请不使用 sudo 重新运行。${NC}"
+MSG_aborted_en="${GREEN}Aborted. Please run without sudo.${NC}"
+
+MSG_err_no_cargo_zh="${RED}错误: 未找到 Rust 工具链（缺少 cargo 命令）${NC}"
+MSG_err_no_cargo_en="${RED}Error: Rust toolchain not found (cargo command missing)${NC}"
+
+MSG_hint_install_rust_zh="安装 Rust: ${YELLOW}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh${NC}"
+MSG_hint_install_rust_en="Install Rust: ${YELLOW}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh${NC}"
+
+MSG_err_no_toolchain_zh="${RED}错误: 找到 cargo 但未配置 Rust 工具链${NC}"
+MSG_err_no_toolchain_en="${RED}Error: cargo found but no Rust toolchain is configured${NC}"
+
+MSG_hint_rustup_default_zh="  运行: ${YELLOW}rustup default stable${NC}（以普通用户身份，不要用 root）"
+MSG_hint_rustup_default_en="  Run: ${YELLOW}rustup default stable${NC} (as your regular user, not as root)"
+
+MSG_hint_no_sudo_zh="  如果你用 sudo 运行此脚本，请尝试不用 sudo——只有最后的安装步骤需要提权。"
+MSG_hint_no_sudo_en="  If you ran this script with sudo, try without sudo — only the final install step needs elevated permissions."
+
+MSG_warn_no_fastfetch_zh="${YELLOW}警告: fastfetch 未安装（必需依赖）${NC}"
+MSG_warn_no_fastfetch_en="${YELLOW}Warning: fastfetch is not installed (required dependency)${NC}"
+
+MSG_hint_install_fastfetch_zh="  安装: https://github.com/fastfetch-cli/fastfetch"
+MSG_hint_install_fastfetch_en="  Install: https://github.com/fastfetch-cli/fastfetch"
+
+MSG_imagemagick_found_zh="${GREEN}检测到 ImageMagick（可选: 支持图片裁剪）${NC}"
+MSG_imagemagick_found_en="${GREEN}ImageMagick detected (optional: image cropping support)${NC}"
+
+MSG_existing_install_zh="${YELLOW}发现已有安装: ${BIN_PATH}${NC}"
+MSG_existing_install_en="${YELLOW}Found existing installation at ${BIN_PATH}${NC}"
+
+MSG_prompt_reinstall_zh="重新安装? [y/N] "
+MSG_prompt_reinstall_en="Reinstall? [y/N] "
+
+MSG_reinstalling_zh="${GREEN}继续重新安装...${NC}"
+MSG_reinstalling_en="${GREEN}Proceeding with reinstall...${NC}"
+
+MSG_skip_install_zh="${GREEN}跳过安装。${NC}"
+MSG_skip_install_en="${GREEN}Skipping installation.${NC}"
+
+MSG_err_no_cargo_toml_zh="${RED}错误: 在 ${SRC_DIR} 未找到 Cargo.toml，这是项目根目录吗？${NC}"
+MSG_err_no_cargo_toml_en="${RED}Error: Cargo.toml not found in ${SRC_DIR}. Is this the project root?${NC}"
+
+MSG_build_start_zh="${GREEN}正在从 ${SRC_DIR} 编译 ${BIN_NAME}（可能需要一些时间）...${NC}"
+MSG_build_start_en="${GREEN}Building ${BIN_NAME} from local source at ${SRC_DIR} (this may take a while)...${NC}"
+
+MSG_err_build_failed_zh="${RED}错误: 编译失败。${NC}"
+MSG_err_build_failed_en="${RED}Error: Build failed.${NC}"
+
+MSG_err_sudo_required_zh="${RED}错误: 安装到 ${INSTALL_DIR} 需要 sudo 但 sudo 不可用。${NC}"
+MSG_err_sudo_required_en="${RED}Error: sudo is required to install to ${INSTALL_DIR} but is not available.${NC}"
+
+MSG_installing_zh="${GREEN}正在安装 ${BIN_NAME} 到 ${INSTALL_DIR}/（可能需要 sudo 密码）...${NC}"
+MSG_installing_en="${GREEN}Installing ${BIN_NAME} to ${INSTALL_DIR}/ (sudo may prompt for password)...${NC}"
+
+MSG_err_install_failed_zh="${RED}错误: 安装到 ${INSTALL_DIR} 失败。权限不足或 sudo 出错。${NC}"
+MSG_err_install_failed_en="${RED}Error: Failed to install to ${INSTALL_DIR}. Permission denied or sudo failed.${NC}"
+
+MSG_installing_completions_zh="${GREEN}正在安装 Shell 补全...${NC}"
+MSG_installing_completions_en="${GREEN}Installing shell completions...${NC}"
+
+MSG_shell_installed_zh="  %s: 已安装到 %s"
+MSG_shell_installed_en="  %s: installed to %s"
+
+MSG_shell_failed_zh="  %s: 失败"
+MSG_shell_failed_en="  %s: failed"
+
+MSG_install_complete_zh="${GREEN}安装完成！${NC}"
+MSG_install_complete_en="${GREEN}Installation complete!${NC}"
+
+MSG_usage_zh="${YELLOW}用法:${NC}"
+MSG_usage_en="${YELLOW}Usage:${NC}"
+
+MSG_usage_basic_zh="  ${BIN_NAME}              显示随机动漫图片 + 系统信息"
+MSG_usage_basic_en="  ${BIN_NAME}              Show a random anime image + system info"
+
+MSG_usage_help_zh="  ${BIN_NAME} --help       显示所有选项"
+MSG_usage_help_en="  ${BIN_NAME} --help       Show all options"
+
+MSG_usage_version_zh="  ${BIN_NAME} --version    显示版本"
+MSG_usage_version_en="  ${BIN_NAME} --version    Show version"
+
+MSG_dependencies_zh="${YELLOW}依赖项:${NC}"
+MSG_dependencies_en="${YELLOW}Dependencies:${NC}"
+
+MSG_ff_required_not_found_zh="  必需: fastfetch ${RED}(未找到)${NC}"
+MSG_ff_required_not_found_en="  Required: fastfetch ${RED}(not found)${NC}"
+
+MSG_ff_required_found_zh="  必需: fastfetch ${GREEN}(已找到)${NC}"
+MSG_ff_required_found_en="  Required: fastfetch ${GREEN}(found)${NC}"
+
+MSG_im_found_zh="  可选: ImageMagick ${GREEN}(已找到)${NC}"
+MSG_im_found_en="  Optional: ImageMagick ${GREEN}(found)${NC}"
+
+MSG_no_imagemagick_zh="  可选: ImageMagick (未安装——图片裁剪不可用)"
+MSG_no_imagemagick_en="  Optional: ImageMagick (not installed — image cropping unavailable)"
+
+MSG_config_path_zh="配置: ~/.config/fwaifu/config.toml"
+MSG_config_path_en="Config: ~/.config/fwaifu/config.toml"
+
 # --- Root user check ---
 if [ "$(id -u)" -eq 0 ]; then
-    printf '%b\n' "${YELLOW}Warning: Running as root is not recommended.${NC}"
-    printf '%b\n' "The build step should run as a regular user."
-    printf '%b' "${YELLOW}Force run as root? Type 'f' to continue, any other key to exit: ${NC}"
+    printf '%b\n' "$(t warn_root)"
+    printf '%b\n' "$(t warn_root_detail)"
+    printf '%b' "${YELLOW}$(t prompt_force_root)${NC}"
     read -r REPLY
     case "$REPLY" in
         [fF]) ;;
         *)
-            printf '%b\n' "${GREEN}Aborted. Please run without sudo.${NC}"
+            printf '%b\n' "$(t aborted)"
             exit 0
             ;;
     esac
 fi
 
-BIN_NAME="fwaifu"
-INSTALL_DIR="/usr/bin"
-BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
-
-# Determine source directory (directory containing this script)
-SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
-
 # --- 1. Check cargo + Rust toolchain ---
 if ! command -v cargo >/dev/null 2>&1; then
-    printf '%b\n' "${RED}Error: Rust toolchain not found (cargo command missing)${NC}" >&2
-    printf '%b\n' "Install Rust: ${YELLOW}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh${NC}"
+    printf '%b\n' "$(t err_no_cargo)" >&2
+    printf '%b\n' "$(t hint_install_rust)"
     exit 1
 fi
 
-# Verify cargo actually works (requires a default toolchain configured).
-# This catches the case where cargo exists (via rustup) but no default
-# toolchain is set. If you see this while running as a regular user,
-# run: rustup default stable
 if ! cargo --version >/dev/null 2>&1; then
-    printf '%b\n' "${RED}Error: cargo found but no Rust toolchain is configured${NC}" >&2
-    printf '%b\n' "  Run: ${YELLOW}rustup default stable${NC} (as your regular user, not as root)"
-    printf '%b\n' "  If you ran this script with sudo, try without sudo — only the final install step needs elevated permissions."
+    printf '%b\n' "$(t err_no_toolchain)" >&2
+    printf '%b\n' "$(t hint_rustup_default)"
+    printf '%b\n' "$(t hint_no_sudo)"
     exit 1
 fi
 
@@ -51,32 +173,32 @@ fi
 missing_fastfetch=0
 if ! command -v fastfetch >/dev/null 2>&1; then
     missing_fastfetch=1
-    printf '%b\n' "${YELLOW}Warning: fastfetch is not installed (required dependency)${NC}"
-    printf '%b\n' "  Install: https://github.com/fastfetch-cli/fastfetch"
+    printf '%b\n' "$(t warn_no_fastfetch)"
+    printf '%b\n' "$(t hint_install_fastfetch)"
 fi
 
 has_imagemagick=0
 if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
     has_imagemagick=1
-    printf '%b\n' "${GREEN}ImageMagick detected (optional: image cropping support)${NC}"
+    printf '%b\n' "$(t imagemagick_found)"
 fi
 
 # --- 3. Check if already installed ---
 already_installed=0
 if [ -f "$BIN_PATH" ]; then
     already_installed=1
-    printf '%b\n' "${YELLOW}Found existing installation at ${BIN_PATH}${NC}"
+    printf '%b\n' "$(t existing_install)"
 fi
 
 if [ "$already_installed" -eq 1 ]; then
-    printf '%b' "${YELLOW}Reinstall? [y/N] ${NC}"
+    printf '%b' "${YELLOW}$(t prompt_reinstall)${NC}"
     read -r REPLY
     case "$REPLY" in
         [Yy]|[Yy][Ee][Ss])
-            printf '%b\n' "${GREEN}Proceeding with reinstall...${NC}"
+            printf '%b\n' "$(t reinstalling)"
             ;;
         *)
-            printf '%b\n' "${GREEN}Skipping installation.${NC}"
+            printf '%b\n' "$(t skip_install)"
             exit 0
             ;;
     esac
@@ -84,38 +206,38 @@ fi
 
 # --- 4. Build from local source ---
 if [ ! -f "$SRC_DIR/Cargo.toml" ]; then
-    printf '%b\n' "${RED}Error: Cargo.toml not found in ${SRC_DIR}. Is this the project root?${NC}" >&2
+    printf '%b\n' "$(t err_no_cargo_toml)" >&2
     exit 1
 fi
 
-printf '%b\n' "${GREEN}Building ${BIN_NAME} from local source at ${SRC_DIR} (this may take a while)...${NC}"
+printf '%b\n' "$(t build_start)"
 (cd "$SRC_DIR" && cargo build --release) || {
-    printf '%b\n' "${RED}Error: Build failed.${NC}" >&2
+    printf '%b\n' "$(t err_build_failed)" >&2
     exit 1
 }
 
 # --- 5. Install binary to /usr/bin/ ---
 if ! command -v sudo >/dev/null 2>&1; then
-    printf '%b\n' "${RED}Error: sudo is required to install to ${INSTALL_DIR} but is not available.${NC}" >&2
+    printf '%b\n' "$(t err_sudo_required)" >&2
     exit 1
 fi
 
-printf '%b\n' "${GREEN}Installing ${BIN_NAME} to ${INSTALL_DIR}/ (sudo may prompt for password)...${NC}"
+printf '%b\n' "$(t installing)"
 sudo mkdir -p "$INSTALL_DIR" && sudo cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
-    printf '%b\n' "${RED}Error: Failed to install to ${INSTALL_DIR}. Permission denied or sudo failed.${NC}" >&2
+    printf '%b\n' "$(t err_install_failed)" >&2
     exit 1
 }
 
 # --- 6. Install shell completions ---
-printf '%b\n' "${GREEN}Installing shell completions...${NC}"
+printf '%b\n' "$(t installing_completions)"
 
 # bash completion
 if command -v bash >/dev/null 2>&1; then
     BASH_COMPLETION_DIR="${HOME}/.local/share/bash-completion/completions"
     mkdir -p "$BASH_COMPLETION_DIR"
     "$BIN_PATH" --completion bash > "$BASH_COMPLETION_DIR/$BIN_NAME" 2>/dev/null && \
-        printf '%b\n' "${GREEN}  bash: installed to ${BASH_COMPLETION_DIR}/${BIN_NAME}${NC}" || \
-        printf '%b\n' "${YELLOW}  bash: failed${NC}"
+        printf '%b\n' "${GREEN}$(tf shell_installed "bash" "${BASH_COMPLETION_DIR}/${BIN_NAME}")${NC}" || \
+        printf '%b\n' "${YELLOW}$(tf shell_failed "bash")${NC}"
 fi
 
 # zsh completion
@@ -123,8 +245,8 @@ if command -v zsh >/dev/null 2>&1; then
     ZSH_COMPLETION_DIR="${HOME}/.zsh/completion"
     mkdir -p "$ZSH_COMPLETION_DIR"
     "$BIN_PATH" --completion zsh > "$ZSH_COMPLETION_DIR/_$BIN_NAME" 2>/dev/null && \
-        printf '%b\n' "${GREEN}  zsh: installed to ${ZSH_COMPLETION_DIR}/_${BIN_NAME}${NC}" || \
-        printf '%b\n' "${YELLOW}  zsh: failed${NC}"
+        printf '%b\n' "${GREEN}$(tf shell_installed "zsh" "${ZSH_COMPLETION_DIR}/_${BIN_NAME}")${NC}" || \
+        printf '%b\n' "${YELLOW}$(tf shell_failed "zsh")${NC}"
 fi
 
 # fish completion
@@ -132,30 +254,30 @@ if command -v fish >/dev/null 2>&1; then
     FISH_COMPLETION_DIR="${HOME}/.config/fish/completions"
     mkdir -p "$FISH_COMPLETION_DIR"
     "$BIN_PATH" --completion fish > "$FISH_COMPLETION_DIR/$BIN_NAME.fish" 2>/dev/null && \
-        printf '%b\n' "${GREEN}  fish: installed to ${FISH_COMPLETION_DIR}/${BIN_NAME}.fish${NC}" || \
-        printf '%b\n' "${YELLOW}  fish: failed${NC}"
+        printf '%b\n' "${GREEN}$(tf shell_installed "fish" "${FISH_COMPLETION_DIR}/${BIN_NAME}.fish")${NC}" || \
+        printf '%b\n' "${YELLOW}$(tf shell_failed "fish")${NC}"
 fi
 
 printf '\n'
 
 # --- 7. Print usage ---
-printf '\n%b\n' "${GREEN}Installation complete!${NC}"
-printf '\n%b\n' "${YELLOW}Usage:${NC}"
-printf '%b\n' "  ${BIN_NAME}              Show a random anime image + system info"
-printf '%b\n' "  ${BIN_NAME} --help       Show all options"
-printf '%b\n' "  ${BIN_NAME} --version    Show version"
-printf '\n%b\n' "${YELLOW}Dependencies:${NC}"
+printf '\n%b\n' "$(t install_complete)"
+printf '\n%b\n' "$(t usage)"
+printf '%b\n' "$(t usage_basic)"
+printf '%b\n' "$(t usage_help)"
+printf '%b\n' "$(t usage_version)"
+printf '\n%b\n' "$(t dependencies)"
 
 if [ "$missing_fastfetch" -eq 1 ]; then
-    printf '%b\n' "  Required: fastfetch ${RED}(not found)${NC}"
+    printf '%b\n' "$(t ff_required_not_found)"
 else
-    printf '%b\n' "  Required: fastfetch ${GREEN}(found)${NC}"
+    printf '%b\n' "$(t ff_required_found)"
 fi
 
 if [ "$has_imagemagick" -eq 1 ]; then
-    printf '%b\n' "  Optional: ImageMagick ${GREEN}(found)${NC}"
+    printf '%b\n' "$(t im_found)"
 else
-    printf '%b\n' "  Optional: ImageMagick (not installed — image cropping unavailable)"
+    printf '%b\n' "$(t no_imagemagick)"
 fi
 
-printf '\n%b\n' "Config: ~/.config/fwaifu/config.toml"
+printf '\n%b\n' "$(t config_path)"
