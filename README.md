@@ -177,7 +177,7 @@ fwaifu --logo-width 30 --pipe false
 
 ## 特别说明
 
-本项目灵感来源于shorin(https://github.com/SHORiN-KiWATA/shorin-arch-setup)的fish配置
+本项目灵感来源于[shorin](https://github.com/SHORiN-KiWATA/shorin-arch-setup)的fish配置
 
 ## 图片源
 
