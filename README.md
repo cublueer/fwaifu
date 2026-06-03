@@ -1,18 +1,17 @@
 # fwaifu
 
-基于 fastfetch 的终端看板娘 / Terminal anime girl viewer powered by fastfetch
+基于 fastfetch 的终端看板娘
 
 > ⚠️ 个人向工具。本项目含有 LLM 生成内容。
-> Personal-use tool. This project contains LLM-generated content.
 
-## 功能 / Features
+## 功能
 
 - 从 [Nekos.moe](https://nekos.moe) 随机获取 SFW/NSFW 二次元图片，配合 fastfetch 展示系统信息
 - 持续轮播模式，适合挂在副屏当作动态看板娘
 - 本地缓存 + 后台守护进程自动补货
 - 图片裁剪（需 ImageMagick）
 - HTTP(S) 代理支持
-- 多语言（中文 / English，根据 `LANG` 环境变量自动切换）
+- 多语言（中文 / English）
 - 登录 Nekos.moe 后解锁 NSFW 内容
 - `-s / --save` 保存上一次展示的图片
 - `--clean` 清除缓存
@@ -22,9 +21,9 @@
 ## 依赖 / Requirements
 
 - [fastfetch](https://github.com/fastfetch-cli/fastfetch)（必需）
-- [ImageMagick](https://imagemagick.org)（必需，用于裁剪）
+- [ImageMagick](https://imagemagick.org)（必需）
 
-## 安装 / Installation
+## 安装
 
 ```bash
 # 一键安装
@@ -36,7 +35,7 @@ cargo install fwaifu
 
 安装后即可使用，无需额外配置 PATH（二进制位于 `/usr/bin/fwaifu`）。Shell 补全（bash/zsh/fish）会在安装时自动配置。
 
-## 卸载 / Uninstallation
+## 卸载
 
 ```bash
 # 一键卸载
@@ -63,7 +62,7 @@ fwaifu --completion zsh > ~/.zsh/completion/_fwaifu
 fwaifu --completion fish > ~/.config/fish/completions/fwaifu.fish
 ```
 
-## 使用 / Usage
+## 使用
 
 ### 基本用法
 
@@ -74,7 +73,7 @@ fwaifu -w                 # 持续轮播模式
 fwaifu -w -n              # NSFW 轮播
 ```
 
-### 账户
+###
 
 ```bash
 fwaifu --login            # 登录 Nekos.moe
@@ -82,7 +81,7 @@ fwaifu --logout           # 登出
 fwaifu --status           # 查看登录状态
 ```
 
-### 保存
+###
 
 ```bash
 fwaifu -s                 # 保存上一张图片到默认目录
@@ -139,7 +138,7 @@ fwaifu --update           # 检查并提示更新
 所有选项之后可直接附加 fastfetch 原生参数，如：
 fwaifu --logo-width 30 --pipe false
 
-## 配置 / Configuration
+## 配置
 
 配置文件：`~/.config/fwaifu/config.toml`
 
@@ -176,10 +175,14 @@ fwaifu --logo-width 30 --pipe false
 
 优先级：CLI 参数 > 环境变量 `FWAIFU_PROXY` > 配置文件
 
-## 图片源 / Image Source
+## 特别说明
+
+本项目灵感来源于shorin(https://github.com/SHORiN-KiWATA/shorin-arch-setup)的fish配置
+
+## 图片源
 
 [Nekos.moe](https://nekos.moe)
 
-## 许可 / License
+## 许可
 
 MIT
