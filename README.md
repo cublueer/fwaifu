@@ -105,31 +105,31 @@ fwaifu --update           # 检查并提示更新
 ```
 
 ### 全部选项
-
-**模式选项:**
+```
+模式选项:
   -n, --nsfw               启用 NSFW 模式
   -w, --watch              启用轮播模式
       --watch-interval <秒> 轮播间隔（默认 5）
 
-**网络选项:**
+网络选项:
   -p, --proxy <URL>        代理地址
 
-**显示选项:**
+显示选项:
       --no-crop            禁用裁剪
       --crop-width <宽>    裁剪宽度（默认 600）
       --crop-height <高>   裁剪高度（默认 800）
       --logo-width <宽>    fastfetch 图片宽度（默认 40）
 
-**账户选项:**
+账户选项:
       --login              登录 Nekos.moe
       --logout             登出
       --status             查看登录状态
 
-**缓存与保存:**
+缓存与保存:
       --clean [sfw|nsfw]   清除缓存
   -s, --save [PATH]        保存上一张图片
 
-**其他:**
+其他:
   -h, --help               帮助
       --update             检查更新
       --version            版本
@@ -137,7 +137,7 @@ fwaifu --update           # 检查并提示更新
 
 所有选项之后可直接附加 fastfetch 原生参数，如：
 fwaifu --logo-width 30 --pipe false
-
+```
 ## 配置
 
 配置文件：`~/.config/fwaifu/config.toml`
