@@ -473,9 +473,10 @@ async fn check_and_update(force: bool) {
     }
 
     println!("Running install.sh...");
-    let install_status = std::process::Command::new("bash")
-        .arg(temp_dir.join("install.sh"))
-        .current_dir(&temp_dir)
+        let install_status = std::process::Command::new("bash")
+            .arg(temp_dir.join("install.sh"))
+            .arg("--reinstall")
+            .current_dir(&temp_dir)
         .stdin(std::process::Stdio::inherit())
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())

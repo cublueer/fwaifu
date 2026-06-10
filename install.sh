@@ -31,6 +31,14 @@ INSTALL_DIR="/usr/bin"
 BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# --- Parse arguments ---
+SKIP_INSTALLED_CHECK=0
+for arg in "$@"; do
+    case "$arg" in
+        --reinstall) SKIP_INSTALLED_CHECK=1 ;;
+    esac
+done
+
 # --- Messages ---
 MSG_warn_root_zh="${YELLOW}警告: 不建议以 root 身份运行。${NC}"
 MSG_warn_root_en="${YELLOW}Warning: Running as root is not recommended.${NC}"
@@ -94,6 +102,21 @@ MSG_build_start_en="${GREEN}Building ${BIN_NAME} from local source at ${SRC_DIR}
 
 MSG_err_build_failed_zh="${RED}错误: 编译失败。${NC}"
 MSG_err_build_failed_en="${RED}Error: Build failed.${NC}"
+
+MSG_err_no_git_zh="${RED}错误: 未找到 git，无法克隆仓库。请手动安装：${NC}"
+MSG_err_no_git_en="${RED}Error: git not found, cannot clone repository. Install manually:${NC}"
+
+MSG_hint_manual_install_zh="  git clone --depth 1 https://github.com/cublueer/fwaifu.git && cd fwaifu && bash install.sh"
+MSG_hint_manual_install_en="  git clone --depth 1 https://github.com/cublueer/fwaifu.git && cd fwaifu && bash install.sh"
+
+MSG_cloning_repo_zh="${GREEN}正在克隆仓库...${NC}"
+MSG_cloning_repo_en="${GREEN}Cloning repository...${NC}"
+
+MSG_clone_failed_zh="${RED}错误: 克隆仓库失败。请检查网络并重试，或手动安装：${NC}"
+MSG_clone_failed_en="${RED}Error: Failed to clone repository. Check your network and try again, or install manually:${NC}"
+
+MSG_cleaning_temp_zh="${GREEN}正在清理临时文件...${NC}"
+MSG_cleaning_temp_en="${GREEN}Cleaning up temporary files...${NC}"
 
 MSG_err_sudo_required_zh="${RED}错误: 安装到 ${INSTALL_DIR} 需要 sudo 但 sudo 不可用。${NC}"
 MSG_err_sudo_required_en="${RED}Error: sudo is required to install to ${INSTALL_DIR} but is not available.${NC}"
@@ -195,44 +218,70 @@ if [ -f "$BIN_PATH" ]; then
 fi
 
 if [ "$already_installed" -eq 1 ]; then
-    printf '%b' "${YELLOW}$(t prompt_reinstall)${NC}"
-    read -r REPLY
-    case "$REPLY" in
-        [Yy]|[Yy][Ee][Ss])
-            printf '%b\n' "$(t reinstalling)"
-            ;;
-        *)
-            printf '%b\n' "$(t skip_install)"
-            exit 0
-            ;;
-    esac
+    if [ "$SKIP_INSTALLED_CHECK" -eq 1 ]; then
+        printf '%b\n' "$(t reinstalling)"
+    else
+        printf '%b' "${YELLOW}$(t prompt_reinstall)${NC}"
+        read -r REPLY
+        case "$REPLY" in
+            [Yy]|[Yy][Ee][Ss])
+                printf '%b\n' "$(t reinstalling)"
+                ;;
+            *)
+                printf '%b\n' "$(t skip_install)"
+                exit 0
+                ;;
+        esac
+    fi
 fi
 
-# --- 4. Build from local source ---
+# --- 4. Ensure source code is available (clone if curl-piped) ---
+USE_TEMP_DIR=0
+
 if [ ! -f "$SRC_DIR/Cargo.toml" ]; then
-    printf '%b\n' "$(t err_no_cargo_toml)" >&2
-    exit 1
+    if ! command -v git >/dev/null 2>&1; then
+        printf '%b\n' "$(t err_no_git)" >&2
+        printf '%b\n' "$(t hint_manual_install)"
+        exit 1
+    fi
+
+    BUILD_DIR=$(mktemp -d /tmp/fwaifu_build.XXXXXX)
+    printf '%b\n' "$(t cloning_repo)"
+
+    git clone --depth 1 https://github.com/cublueer/fwaifu.git "$BUILD_DIR" || {
+        printf '%b\n' "$(t err_clone_failed)" >&2
+        printf '%b\n' "$(t hint_manual_install)"
+        rm -rf "$BUILD_DIR"
+        exit 1
+    }
+
+    SRC_DIR="$BUILD_DIR"
+    USE_TEMP_DIR=1
 fi
 
+# --- 5. Build from source ---
 printf '%b\n' "$(t build_start)"
 (cd "$SRC_DIR" && cargo build --release) || {
     printf '%b\n' "$(t err_build_failed)" >&2
+    [ "$USE_TEMP_DIR" -eq 1 ] && rm -rf "$BUILD_DIR"
     exit 1
 }
 
-# --- 5. Install binary to /usr/bin/ ---
+# --- 6. Install binary to /usr/bin/ ---
 if ! command -v sudo >/dev/null 2>&1; then
     printf '%b\n' "$(t err_sudo_required)" >&2
+    [ "$USE_TEMP_DIR" -eq 1 ] && rm -rf "$BUILD_DIR"
     exit 1
 fi
 
 printf '%b\n' "$(t installing)"
-sudo mkdir -p "$INSTALL_DIR" && sudo cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
+sudo mkdir -p "$INSTALL_DIR" && sudo rm -f "$BIN_PATH" && sudo cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
     printf '%b\n' "$(t err_install_failed)" >&2
+    [ "$USE_TEMP_DIR" -eq 1 ] && rm -rf "$BUILD_DIR"
     exit 1
 }
 
-# --- 6. Install shell completions ---
+# --- 7. Install shell completions ---
 printf '%b\n' "$(t installing_completions)"
 
 # bash completion
@@ -264,7 +313,13 @@ fi
 
 printf '\n'
 
-# --- 7. Print usage ---
+# --- Cleanup: remove temp directory if cloned from git ---
+if [ "$USE_TEMP_DIR" -eq 1 ]; then
+    printf '%b\n' "$(t cleaning_temp)"
+    rm -rf "$BUILD_DIR"
+fi
+
+# --- 8. Print usage ---
 printf '\n%b\n' "$(t install_complete)"
 printf '\n%b\n' "$(t usage)"
 printf '%b\n' "$(t usage_basic)"
