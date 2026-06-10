@@ -4,13 +4,21 @@ use clap::ValueEnum;
 #[derive(Parser, Debug)]
 #[command(
     name = "fwaifu",
-    about = "A random anime girl generator for your terminal, powered by Fastfetch",
+    about = "A random anime girl generator for your terminal, powered by Fastfetch and chafa",
     version
 )]
 pub struct Cli {
     /// Enable NSFW mode
     #[arg(short = 'n', long, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub nsfw: bool,
+
+    /// Use chafa to display the image in the terminal
+    #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
+    pub term: bool,
+
+    /// Width of the chafa output in characters (default: auto-detect, 1/3 of terminal width)
+    #[arg(long)]
+    pub term_width: Option<u32>,
 
     /// Enable watch/loop mode
     #[arg(short = 'w', long, action = clap::ArgAction::SetTrue, default_value_t = false)]
@@ -64,7 +72,7 @@ pub struct Cli {
     #[arg(short = 's', long, num_args = 0..=1, default_missing_value = "__DEFAULT__")]
     pub save: Option<String>,
 
-    /// Check for updates and install if a newer version is available
+    /// Check for updates and prompt to install
     #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub update: bool,
 

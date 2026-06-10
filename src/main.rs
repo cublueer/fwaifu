@@ -325,13 +325,33 @@ async fn run_one_cycle(
             }
         }
 
-        // Run fastfetch with the image
-        match runner::run_fastfetch(&selected_path, Some(config.logo_width), &config.fastfetch_args)
-        {
-            Ok(()) => {}
-            Err(e) => {
-                eprintln!("{}", i18n::tf("error.fastfetch_error", &[&e.to_string()]));
-                let _ = runner::run_fastfetch_default(&config.fastfetch_args);
+        // Display with chafa or fastfetch
+        if config.term {
+            match runner::capture_chafa(&selected_path, config.crop_width, config.crop_height, config.term_width) {
+                Ok(left_lines) => {
+                    match runner::capture_fastfetch(&config.fastfetch_args) {
+                        Ok(right_lines) => {
+                            let merged = runner::merge_side_by_side(&left_lines, &right_lines, 2);
+                            print!("{merged}");
+                        }
+                        Err(e) => {
+                            eprintln!("{}", i18n::tf("error.fastfetch_error", &[&e.to_string()]));
+                            let _ = runner::run_fastfetch_default(&config.fastfetch_args);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{}", i18n::tf("error.chafa_error", &[&e.to_string()]));
+                }
+            }
+        } else {
+            match runner::run_fastfetch(&selected_path, Some(config.logo_width), &config.fastfetch_args)
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!("{}", i18n::tf("error.fastfetch_error", &[&e.to_string()]));
+                    let _ = runner::run_fastfetch_default(&config.fastfetch_args);
+                }
             }
         }
 
@@ -372,7 +392,7 @@ fn fallback_default(fastfetch_args: &[String]) {
 
 // ─── Update Checker ──────────────────────────────────────────────────
 
-/// Fetch remote Cargo.toml, parse version, compare with current, and update if newer.
+/// Fetch remote Cargo.toml, parse version, compare with current, and prompt to install if newer.
 async fn check_and_update() {
     let current_version = env!("CARGO_PKG_VERSION");
     let remote_url = "https://raw.githubusercontent.com/cublueer/fwaifu/main/Cargo.toml";
@@ -406,8 +426,57 @@ async fn check_and_update() {
     println!("Latest version:  {}", remote_version);
 
     if remote_version > current_version {
-        println!("A newer version is available. Run the installer to update:");
-        println!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+        if !command_exists("git") {
+            println!("git is not installed. Install it first, or update manually:");
+            println!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+            return;
+        }
+
+        use std::io::{self, Write};
+        print!("Install update? [y/N] ");
+        let _ = io::stdout().flush();
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_err() || !input.trim().eq_ignore_ascii_case("y") {
+            println!("Update cancelled.");
+            return;
+        }
+
+        let temp_dir = std::env::temp_dir().join(format!("fwaifu_update_{}", std::process::id()));
+        println!("Cloning repository...");
+        let clone_status = std::process::Command::new("git")
+            .args(["clone", "--depth", "1", "https://github.com/cublueer/fwaifu.git"])
+            .arg(&temp_dir)
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
+            .status();
+
+        match clone_status {
+            Ok(s) if s.success() => {}
+            _ => {
+                eprintln!("Failed to clone repository. Update manually:");
+                eprintln!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+                let _ = std::fs::remove_dir_all(&temp_dir);
+                return;
+            }
+        }
+
+        println!("Running install.sh...");
+        let install_status = std::process::Command::new("bash")
+            .arg(temp_dir.join("install.sh"))
+            .current_dir(&temp_dir)
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
+            .status();
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+
+        if install_status.map_or(false, |s| s.success()) {
+            println!("Update complete!");
+        } else {
+            eprintln!("Install failed. You can try manually:");
+            eprintln!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+        }
     } else {
         println!("Already up to date.");
     }
@@ -555,6 +624,12 @@ async fn main() {
     // Check that fastfetch is installed before doing anything
     if !command_exists("fastfetch") {
         eprintln!("{}", i18n::t("error.fastfetch_not_found"));
+        std::process::exit(1);
+    }
+
+    // Check that chafa is installed when --term is used
+    if cli.term && !runner::is_chafa_available() {
+        eprintln!("{}", i18n::t("error.chafa_not_found"));
         std::process::exit(1);
     }
 

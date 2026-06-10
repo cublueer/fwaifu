@@ -1,12 +1,12 @@
 [package]
 name = "fwaifu"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 license = "MIT"
-description = "Terminal anime girl viewer powered by fastfetch — display random anime images alongside system info"
+description = "Terminal anime girl viewer powered by fastfetch and chafa"
 repository = "https://github.com/cublueer/fwaifu"
 homepage = "https://github.com/cublueer/fwaifu"
-keywords = ["terminal", "anime", "fastfetch", "cli", "image"]
+keywords = ["terminal", "anime", "fastfetch", "cli", "chafa", "image"]
 readme = "README.md"
 
 [[bin]]

@@ -5,6 +5,8 @@ use crate::cli::Cli;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     pub nsfw: bool,
+    pub term: bool,
+    pub term_width: Option<u32>,
     pub watch: bool,
     pub watch_interval: u64,
     pub proxy: Option<String>,
@@ -26,6 +28,8 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             nsfw: false,
+            term: false,
+            term_width: None,
             watch: false,
             watch_interval: 5,
             proxy: None,
@@ -48,6 +52,8 @@ impl Default for Config {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct FileConfig {
     proxy: Option<String>,
+    term: Option<bool>,
+    term_width: Option<u32>,
     crop: Option<bool>,
     crop_width: Option<u32>,
     crop_height: Option<u32>,
@@ -105,6 +111,12 @@ fn merge_file_config(config: &mut Config, file: &FileConfig) {
     if let Some(ref proxy) = file.proxy {
         config.proxy = Some(proxy.clone());
     }
+    if let Some(term) = file.term {
+        config.term = term;
+    }
+    if let Some(term_width) = file.term_width {
+        config.term_width = Some(term_width);
+    }
     if let Some(crop) = file.crop {
         config.crop = crop;
     }
@@ -146,6 +158,12 @@ fn merge_file_config(config: &mut Config, file: &FileConfig) {
 fn merge_cli_overrides(config: &mut Config, cli: &Cli) {
     if cli.nsfw {
         config.nsfw = true;
+    }
+    if cli.term {
+        config.term = true;
+    }
+    if let Some(term_width) = cli.term_width {
+        config.term_width = Some(term_width);
     }
     if cli.watch {
         config.watch = true;

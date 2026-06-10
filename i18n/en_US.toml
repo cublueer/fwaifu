@@ -30,10 +30,12 @@ login_error = "Login error: {0}"
 clean_invalid = "Invalid clean target: {0}. Use 'sfw', 'nsfw', or omit for all."
 save_failed = "⚠️ Failed to save image: {0}"
 imagemagick_not_found = "ImageMagick not found, skipping image crop. (Use --no-crop to suppress this warning)"
+chafa_not_found = "chafa is not installed or not found on PATH."
+chafa_error = "chafa error: {0}"
 
 [help]
 text = """
-fwaifu — Random anime girl generator for your terminal, powered by Fastfetch
+fwaifu — Random anime girl generator for your terminal, powered by Fastfetch and chafa
 
 Usage:
   fwaifu              Standard mode, random SFW image + system info
@@ -54,6 +56,8 @@ Display Options:
       --crop-width <W>     Crop width (default 600)
       --crop-height <H>    Crop height (default 800)
       --logo-width <W>     Fastfetch image width (default 40)
+      --term               Use chafa to display image in terminal
+      --term-width <W>     chafa image width in characters (default: auto)
 
 Account Options:
       --login              Login to Nekos.moe (saves token)

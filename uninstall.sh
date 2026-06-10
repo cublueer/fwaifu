@@ -98,7 +98,7 @@ prompt_remove() {
     dir="$1"
     msg_key="$2"
     if [ -d "$dir" ]; then
-        printf '%s' "${YELLOW}$(t ${msg_key}) [y/N] ${NC}"
+        printf '%b' "${YELLOW}$(t ${msg_key}) [y/N] ${NC}"
         read -r REPLY
         case "$REPLY" in
             [Yy]|[Yy][Ee][Ss])

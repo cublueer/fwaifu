@@ -1,6 +1,6 @@
 # fwaifu
 
-基于 fastfetch 的终端看板娘
+基于 fastfetch + chafa 的终端看板娘
 
 > ⚠️ 个人向工具。本项目含有 LLM 生成内容。
 
@@ -13,6 +13,7 @@
 - HTTP(S) 代理支持
 - 多语言（中文 / English）
 - 登录 Nekos.moe 后解锁 NSFW 内容
+- `--term` 使用 chafa 在终端中直接显示图片
 - `-s / --save` 保存上一次展示的图片
 - `--clean` 清除缓存
 - `--update` 检查并提示更新
@@ -21,7 +22,8 @@
 ## 依赖 / Requirements
 
 - [fastfetch](https://github.com/fastfetch-cli/fastfetch)（必需）
-- [ImageMagick](https://imagemagick.org)（必需）
+- [ImageMagick](https://imagemagick.org)（可选，用于裁剪）
+- [chafa](https://crates.io/crates/chafa)（可选，`--term` 模式需要）
 
 ## 安装
 
@@ -71,9 +73,11 @@ fwaifu                    # 显示随机 SFW 图片 + 系统信息
 fwaifu -n                 # NSFW 模式（需先 --login）
 fwaifu -w                 # 持续轮播模式
 fwaifu -w -n              # NSFW 轮播
+fwaifu --term             # 使用 chafa 显示图片 + fastfetch 系统信息
+fwaifu --term --term-width 40  # 指定 chafa 输出宽度
 ```
 
-###
+### 账户管理
 
 ```bash
 fwaifu --login            # 登录 Nekos.moe
@@ -81,7 +85,7 @@ fwaifu --logout           # 登出
 fwaifu --status           # 查看登录状态
 ```
 
-###
+### 保存图片
 
 ```bash
 fwaifu -s                 # 保存上一张图片到默认目录
@@ -119,6 +123,8 @@ fwaifu --update           # 检查并提示更新
       --crop-width <宽>    裁剪宽度（默认 600）
       --crop-height <高>   裁剪高度（默认 800）
       --logo-width <宽>    fastfetch 图片宽度（默认 40）
+      --term               使用 chafa 在终端中显示图片
+      --term-width <宽>    chafa 输出宽度（默认自动检测）
 
 账户选项:
       --login              登录 Nekos.moe
@@ -158,6 +164,9 @@ fwaifu --logo-width 30 --pipe false
 
 # fastfetch 图片宽度
 # logo_width = 40
+
+# term = false                  # 使用 chafa 在终端中显示图片
+# term_width = 40               # chafa 输出宽度（默认自动检测）
 
 [download]
 # batch_size = 10              # 每次补货下载数量
