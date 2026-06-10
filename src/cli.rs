@@ -76,6 +76,10 @@ pub struct Cli {
     #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub update: bool,
 
+    /// Skip version check and force reinstall (use with --update)
+    #[arg(short = 'f', long, action = clap::ArgAction::SetTrue, default_value_t = false)]
+    pub force: bool,
+
     /// Generate shell completion script for the given shell
     #[arg(long, value_enum)]
     pub completion: Option<Shell>,

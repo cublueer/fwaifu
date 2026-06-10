@@ -393,45 +393,56 @@ fn fallback_default(fastfetch_args: &[String]) {
 // ─── Update Checker ──────────────────────────────────────────────────
 
 /// Fetch remote Cargo.toml, parse version, compare with current, and prompt to install if newer.
-async fn check_and_update() {
+/// When `force` is true, skip version checking and proceed directly to installation.
+async fn check_and_update(force: bool) {
     let current_version = env!("CARGO_PKG_VERSION");
     let remote_url = "https://raw.githubusercontent.com/cublueer/fwaifu/main/Cargo.toml";
 
-    // Fetch remote Cargo.toml
-    let client = reqwest::Client::new();
-    let resp = match client.get(remote_url).send().await {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("Failed to check for updates: {}", e);
+    // Skip version check when force is enabled
+    if force {
+        println!("Forcing reinstall of version {}...", current_version);
+    } else {
+        // Fetch remote Cargo.toml
+        let client = reqwest::Client::new();
+        let resp = match client.get(remote_url).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("Failed to check for updates: {}", e);
+                return;
+            }
+        };
+
+        let body = match resp.text().await {
+            Ok(b) => b,
+            Err(e) => {
+                eprintln!("Failed to read remote version: {}", e);
+                return;
+            }
+        };
+
+        // Parse version from Cargo.toml
+        let remote_version = body
+            .lines()
+            .find(|line| line.trim().starts_with("version"))
+            .and_then(|line| line.split('"').nth(1))
+            .unwrap_or("0.0.0");
+
+        println!("Current version: {}", current_version);
+        println!("Latest version:  {}", remote_version);
+
+        if remote_version <= current_version {
+            println!("Already up to date.");
             return;
         }
-    };
+    }
 
-    let body = match resp.text().await {
-        Ok(b) => b,
-        Err(e) => {
-            eprintln!("Failed to read remote version: {}", e);
-            return;
-        }
-    };
+    if !command_exists("git") {
+        println!("git is not installed. Install it first, or update manually:");
+        println!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+        return;
+    }
 
-    // Parse version from Cargo.toml
-    let remote_version = body
-        .lines()
-        .find(|line| line.trim().starts_with("version"))
-        .and_then(|line| line.split('"').nth(1))
-        .unwrap_or("0.0.0");
-
-    println!("Current version: {}", current_version);
-    println!("Latest version:  {}", remote_version);
-
-    if remote_version > current_version {
-        if !command_exists("git") {
-            println!("git is not installed. Install it first, or update manually:");
-            println!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
-            return;
-        }
-
+    {
         use std::io::{self, Write};
         print!("Install update? [y/N] ");
         let _ = io::stdout().flush();
@@ -440,45 +451,43 @@ async fn check_and_update() {
             println!("Update cancelled.");
             return;
         }
+    }
 
-        let temp_dir = std::env::temp_dir().join(format!("fwaifu_update_{}", std::process::id()));
-        println!("Cloning repository...");
-        let clone_status = std::process::Command::new("git")
-            .args(["clone", "--depth", "1", "https://github.com/cublueer/fwaifu.git"])
-            .arg(&temp_dir)
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .status();
+    let temp_dir = std::env::temp_dir().join(format!("fwaifu_update_{}", std::process::id()));
+    println!("Cloning repository...");
+    let clone_status = std::process::Command::new("git")
+        .args(["clone", "--depth", "1", "https://github.com/cublueer/fwaifu.git"])
+        .arg(&temp_dir)
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .status();
 
-        match clone_status {
-            Ok(s) if s.success() => {}
-            _ => {
-                eprintln!("Failed to clone repository. Update manually:");
-                eprintln!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
-                let _ = std::fs::remove_dir_all(&temp_dir);
-                return;
-            }
-        }
-
-        println!("Running install.sh...");
-        let install_status = std::process::Command::new("bash")
-            .arg(temp_dir.join("install.sh"))
-            .current_dir(&temp_dir)
-            .stdin(std::process::Stdio::inherit())
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .status();
-
-        let _ = std::fs::remove_dir_all(&temp_dir);
-
-        if install_status.map_or(false, |s| s.success()) {
-            println!("Update complete!");
-        } else {
-            eprintln!("Install failed. You can try manually:");
+    match clone_status {
+        Ok(s) if s.success() => {}
+        _ => {
+            eprintln!("Failed to clone repository. Update manually:");
             eprintln!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return;
         }
+    }
+
+    println!("Running install.sh...");
+    let install_status = std::process::Command::new("bash")
+        .arg(temp_dir.join("install.sh"))
+        .current_dir(&temp_dir)
+        .stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .status();
+
+    let _ = std::fs::remove_dir_all(&temp_dir);
+
+    if install_status.map_or(false, |s| s.success()) {
+        println!("Update complete!");
     } else {
-        println!("Already up to date.");
+        eprintln!("Install failed. You can try manually:");
+        eprintln!("  curl -fsSL https://raw.githubusercontent.com/cublueer/fwaifu/main/install.sh | bash");
     }
 }
 
@@ -498,7 +507,7 @@ async fn main() {
 
     // Handle --update
     if cli.update {
-        check_and_update().await;
+        check_and_update(cli.force).await;
         return;
     }
 

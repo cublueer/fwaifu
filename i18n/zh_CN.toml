@@ -71,6 +71,7 @@ fwaifu — 随机二次元美少女生成器，基于 Fastfetch + chafa 的终�
 其他:
   -h, --help               显示本帮助
       --update             检查更新
+  -f, --force             强制重新安装（配合 --update 使用）
       --version            显示版本
       --completion <SHELL>  生成 Shell 补全 (bash/zsh/fish)
 
