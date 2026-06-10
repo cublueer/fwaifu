@@ -163,6 +163,12 @@ MSG_ff_required_found_en="  Required: fastfetch ${GREEN}(found)${NC}"
 MSG_im_found_zh="  必需: ImageMagick ${GREEN}(已找到)${NC}"
 MSG_im_found_en="  Required: ImageMagick ${GREEN}(found)${NC}"
 
+MSG_config_copied_zh="${GREEN}示例配置已复制到 ~/.config/fwaifu/config.toml${NC}"
+MSG_config_copied_en="${GREEN}Example config copied to ~/.config/fwaifu/config.toml${NC}"
+
+MSG_config_exists_zh="${YELLOW}配置文件已存在，跳过复制: ~/.config/fwaifu/config.toml${NC}"
+MSG_config_exists_en="${YELLOW}Config file already exists, skipping: ~/.config/fwaifu/config.toml${NC}"
+
 MSG_config_path_zh="配置: ~/.config/fwaifu/config.toml"
 MSG_config_path_en="Config: ~/.config/fwaifu/config.toml"
 
@@ -312,6 +318,16 @@ if command -v fish >/dev/null 2>&1; then
 fi
 
 printf '\n'
+
+# --- Copy example config ---
+CONFIG_DIR="${HOME}/.config/fwaifu"
+if [ -f "$CONFIG_DIR/config.toml" ]; then
+    printf '%b\n' "$(t config_exists)"
+else
+    mkdir -p "$CONFIG_DIR"
+    cp "$SRC_DIR/config.example.toml" "$CONFIG_DIR/config.toml" && \
+        printf '%b\n' "$(t config_copied)"
+fi
 
 # --- Cleanup: remove temp directory if cloned from git ---
 if [ "$USE_TEMP_DIR" -eq 1 ]; then

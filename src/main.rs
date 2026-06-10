@@ -9,6 +9,7 @@ mod image;
 mod runner;
 mod watch;
 mod i18n;
+mod setting;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -628,6 +629,12 @@ async fn main() {
                 eprintln!("{}", i18n::tf("error.save_failed", &[&e.to_string()]));
             }
         }
+        return;
+    }
+
+    // Handle --setting
+    if cli.setting {
+        setting::run().unwrap_or_else(|e| eprintln!("Error: {}", e));
         return;
     }
 

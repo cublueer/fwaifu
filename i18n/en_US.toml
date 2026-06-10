@@ -72,6 +72,7 @@ Other:
   -h, --help               Show this help
       --update             Check for updates
   -f, --force             Force reinstall (use with --update)
+      --setting            Interactive configuration editor
       --version            Show version
       --completion <SHELL>  Generate shell completion (bash/zsh/fish)
 

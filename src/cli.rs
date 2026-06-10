@@ -80,6 +80,10 @@ pub struct Cli {
     #[arg(short = 'f', long, action = clap::ArgAction::SetTrue, default_value_t = false)]
     pub force: bool,
 
+    /// Interactive configuration editor
+    #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
+    pub setting: bool,
+
     /// Generate shell completion script for the given shell
     #[arg(long, value_enum)]
     pub completion: Option<Shell>,
