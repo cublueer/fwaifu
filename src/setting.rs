@@ -98,26 +98,26 @@ fn print_menu(doc: &toml_edit::DocumentMut) {
 fn display_value(doc: &toml_edit::DocumentMut, item: &MenuItem) -> String {
     let target = resolve(doc, item.path);
     match item.kind {
-        Kind::Bool => match target.as_bool() {
+        Kind::Bool => match target.and_then(|t| t.as_bool()) {
             Some(v) => v.to_string(),
             None => "(not set)".to_string(),
         },
-        Kind::Int => match target.as_integer() {
+        Kind::Int => match target.and_then(|t| t.as_integer()) {
             Some(v) => v.to_string(),
             None => "(not set)".to_string(),
         },
-        Kind::Str => match target.as_str() {
+        Kind::Str => match target.and_then(|t| t.as_str()) {
             Some(v) if !v.is_empty() => v.to_string(),
             _ => "(not set)".to_string(),
         },
     }
 }
 
-fn resolve<'a>(doc: &'a toml_edit::DocumentMut, path: &[&str]) -> &'a toml_edit::Item {
+fn resolve<'a>(doc: &'a toml_edit::DocumentMut, path: &[&str]) -> Option<&'a toml_edit::Item> {
     if path.len() == 1 {
-        return &doc[path[0]];
+        return doc.get(path[0]);
     }
-    &doc[path[0]][path[1]]
+    doc.get(path[0]).and_then(|t| t.get(path[1]))
 }
 
 fn ensure_table(doc: &mut toml_edit::DocumentMut, name: &str) {
@@ -132,7 +132,7 @@ fn edit_item(item: &MenuItem, doc: &mut toml_edit::DocumentMut) -> Result<(), St
 
     match item.kind {
         Kind::Bool => {
-            let cur = resolve(doc, item.path).as_bool().unwrap_or(false);
+            let cur = resolve(doc, item.path).and_then(|t| t.as_bool()).unwrap_or(false);
             let new_val = !cur;
             let display = if new_val { "true" } else { "false" };
             let input = read_line(&format!("  Change to {}? [y/N] ", display)).unwrap_or_default();
@@ -190,7 +190,7 @@ fn remove_key(doc: &mut toml_edit::DocumentMut, path: &[&str]) {
     match path.len() {
         1 => { doc.remove(path[0]); }
         2 => {
-            if let Some(table) = doc[path[0]].as_table_mut() {
+            if let Some(table) = doc.get_mut(path[0]).and_then(|t| t.as_table_mut()) {
                 table.remove(path[1]);
             }
         }
