@@ -248,6 +248,7 @@ printf '%b\n' "$(t build_start)"
 # --- 6. Install binary to ~/.local/bin/ ---
 printf '%b\n' "$(t installing)"
 mkdir -p "$INSTALL_DIR"
+rm -f "$BIN_PATH"
 cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
     printf '%b\n' "$(t err_install_failed)" >&2
     [ "$USE_TEMP_DIR" -eq 1 ] && rm -rf "$BUILD_DIR"
