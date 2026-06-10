@@ -27,7 +27,7 @@ NC='\033[0m'
 
 # --- Variables ---
 BIN_NAME="fwaifu"
-INSTALL_DIR="/usr/bin"
+INSTALL_DIR="${HOME}/.local/bin"
 BIN_PATH="${INSTALL_DIR}/${BIN_NAME}"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -40,18 +40,6 @@ for arg in "$@"; do
 done
 
 # --- Messages ---
-MSG_warn_root_zh="${YELLOW}警告: 不建议以 root 身份运行。${NC}"
-MSG_warn_root_en="${YELLOW}Warning: Running as root is not recommended.${NC}"
-
-MSG_warn_root_detail_zh="编译应在普通用户下进行。"
-MSG_warn_root_detail_en="The build step should run as a regular user."
-
-MSG_prompt_force_root_zh="强制以 root 运行？输入 'f' 继续，其他键退出: "
-MSG_prompt_force_root_en="Force run as root? Type 'f' to continue, any other key to exit: "
-
-MSG_aborted_zh="${GREEN}已取消。请不使用 sudo 重新运行。${NC}"
-MSG_aborted_en="${GREEN}Aborted. Please run without sudo.${NC}"
-
 MSG_err_no_cargo_zh="${RED}错误: 未找到 Rust 工具链（缺少 cargo 命令）${NC}"
 MSG_err_no_cargo_en="${RED}Error: Rust toolchain not found (cargo command missing)${NC}"
 
@@ -61,11 +49,8 @@ MSG_hint_install_rust_en="Install Rust: ${YELLOW}curl --proto '=https' --tlsv1.2
 MSG_err_no_toolchain_zh="${RED}错误: 找到 cargo 但未配置 Rust 工具链${NC}"
 MSG_err_no_toolchain_en="${RED}Error: cargo found but no Rust toolchain is configured${NC}"
 
-MSG_hint_rustup_default_zh="  运行: ${YELLOW}rustup default stable${NC}（以普通用户身份，不要用 root）"
-MSG_hint_rustup_default_en="  Run: ${YELLOW}rustup default stable${NC} (as your regular user, not as root)"
-
-MSG_hint_no_sudo_zh="  如果你用 sudo 运行此脚本，请尝试不用 sudo——只有最后的安装步骤需要提权。"
-MSG_hint_no_sudo_en="  If you ran this script with sudo, try without sudo — only the final install step needs elevated permissions."
+MSG_hint_rustup_default_zh="  运行: ${YELLOW}rustup default stable${NC}"
+MSG_hint_rustup_default_en="  Run: ${YELLOW}rustup default stable${NC}"
 
 MSG_warn_no_fastfetch_zh="${YELLOW}警告: fastfetch 未安装（必需依赖）${NC}"
 MSG_warn_no_fastfetch_en="${YELLOW}Warning: fastfetch is not installed (required dependency)${NC}"
@@ -118,14 +103,17 @@ MSG_clone_failed_en="${RED}Error: Failed to clone repository. Check your network
 MSG_cleaning_temp_zh="${GREEN}正在清理临时文件...${NC}"
 MSG_cleaning_temp_en="${GREEN}Cleaning up temporary files...${NC}"
 
-MSG_err_sudo_required_zh="${RED}错误: 安装到 ${INSTALL_DIR} 需要 sudo 但 sudo 不可用。${NC}"
-MSG_err_sudo_required_en="${RED}Error: sudo is required to install to ${INSTALL_DIR} but is not available.${NC}"
+MSG_installing_zh="${GREEN}正在安装 ${BIN_NAME} 到 ${INSTALL_DIR}/...${NC}"
+MSG_installing_en="${GREEN}Installing ${BIN_NAME} to ${INSTALL_DIR}/...${NC}"
 
-MSG_installing_zh="${GREEN}正在安装 ${BIN_NAME} 到 ${INSTALL_DIR}/（可能需要 sudo 密码）...${NC}"
-MSG_installing_en="${GREEN}Installing ${BIN_NAME} to ${INSTALL_DIR}/ (sudo may prompt for password)...${NC}"
+MSG_err_install_failed_zh="${RED}错误: 安装到 ${INSTALL_DIR} 失败。权限不足或磁盘已满。${NC}"
+MSG_err_install_failed_en="${RED}Error: Failed to install to ${INSTALL_DIR}. Permission denied or disk full.${NC}"
 
-MSG_err_install_failed_zh="${RED}错误: 安装到 ${INSTALL_DIR} 失败。权限不足或 sudo 出错。${NC}"
-MSG_err_install_failed_en="${RED}Error: Failed to install to ${INSTALL_DIR}. Permission denied or sudo failed.${NC}"
+MSG_warn_path_zh="${YELLOW}注意: ${INSTALL_DIR} 不在 PATH 中。请将以下行添加到 ~/.bashrc 或 ~/.zshrc:${NC}"
+MSG_warn_path_en="${YELLOW}Note: ${INSTALL_DIR} is not in PATH. Add this line to your ~/.bashrc or ~/.zshrc:${NC}"
+
+MSG_hint_path_zh="  export PATH=\"${INSTALL_DIR}:\$PATH\""
+MSG_hint_path_en="  export PATH=\"${INSTALL_DIR}:\$PATH\""
 
 MSG_installing_completions_zh="${GREEN}正在安装 Shell 补全...${NC}"
 MSG_installing_completions_en="${GREEN}Installing shell completions...${NC}"
@@ -172,21 +160,6 @@ MSG_config_exists_en="${YELLOW}Config file already exists, skipping: ~/.config/f
 MSG_config_path_zh="配置: ~/.config/fwaifu/config.toml"
 MSG_config_path_en="Config: ~/.config/fwaifu/config.toml"
 
-# --- Root user check ---
-if [ "$(id -u)" -eq 0 ]; then
-    printf '%b\n' "$(t warn_root)"
-    printf '%b\n' "$(t warn_root_detail)"
-    printf '%b' "${YELLOW}$(t prompt_force_root)${NC}"
-    read -r REPLY
-    case "$REPLY" in
-        [fF]) ;;
-        *)
-            printf '%b\n' "$(t aborted)"
-            exit 0
-            ;;
-    esac
-fi
-
 # --- 1. Check cargo + Rust toolchain ---
 if ! command -v cargo >/dev/null 2>&1; then
     printf '%b\n' "$(t err_no_cargo)" >&2
@@ -197,7 +170,6 @@ fi
 if ! cargo --version >/dev/null 2>&1; then
     printf '%b\n' "$(t err_no_toolchain)" >&2
     printf '%b\n' "$(t hint_rustup_default)"
-    printf '%b\n' "$(t hint_no_sudo)"
     exit 1
 fi
 
@@ -273,15 +245,10 @@ printf '%b\n' "$(t build_start)"
     exit 1
 }
 
-# --- 6. Install binary to /usr/bin/ ---
-if ! command -v sudo >/dev/null 2>&1; then
-    printf '%b\n' "$(t err_sudo_required)" >&2
-    [ "$USE_TEMP_DIR" -eq 1 ] && rm -rf "$BUILD_DIR"
-    exit 1
-fi
-
+# --- 6. Install binary to ~/.local/bin/ ---
 printf '%b\n' "$(t installing)"
-sudo mkdir -p "$INSTALL_DIR" && sudo rm -f "$BIN_PATH" && sudo cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
+mkdir -p "$INSTALL_DIR"
+cp "$SRC_DIR/target/release/$BIN_NAME" "$BIN_PATH" || {
     printf '%b\n' "$(t err_install_failed)" >&2
     [ "$USE_TEMP_DIR" -eq 1 ] && rm -rf "$BUILD_DIR"
     exit 1
@@ -352,3 +319,12 @@ fi
 printf '%b\n' "$(t im_found)"
 
 printf '\n%b\n' "$(t config_path)"
+
+# --- Check PATH ---
+case ":${PATH}:" in
+    *:"${INSTALL_DIR}":*) ;;
+    *)
+        printf '\n%b\n' "$(t warn_path)"
+        printf '%b\n' "$(t hint_path)"
+        ;;
+esac

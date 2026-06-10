@@ -22,7 +22,7 @@ NC='\033[0m'
 
 # --- Variables ---
 BIN_NAME="fwaifu"
-BIN_PATH="/usr/bin/${BIN_NAME}"
+BIN_PATH="${HOME}/.local/bin/${BIN_NAME}"
 CONFIG_DIR="${HOME}/.config/${BIN_NAME}"
 CACHE_DIR="${HOME}/.cache/${BIN_NAME}"
 PICTURES_DIR="${HOME}/Pictures/${BIN_NAME}"
@@ -34,9 +34,6 @@ MSG_uninstaller_en="          fwaifu Uninstaller"
 
 MSG_removing_binary_zh="${YELLOW}正在删除 ${BIN_NAME} 二进制文件...${NC}"
 MSG_removing_binary_en="${YELLOW}Removing ${BIN_NAME} binary...${NC}"
-
-MSG_err_sudo_required_zh="${RED}错误: 需要 sudo 但 sudo 不可用。${NC}"
-MSG_err_sudo_required_en="${RED}Error: sudo is required but not available.${NC}"
 
 MSG_removed_binary_zh="${GREEN}已删除 ${BIN_PATH}${NC}"
 MSG_removed_binary_en="${GREEN}Removed ${BIN_PATH}${NC}"
@@ -76,13 +73,7 @@ printf '\n'
 
 # --- Remove binary ---
 printf '%b\n' "$(t removing_binary)"
-
-if ! command -v sudo >/dev/null 2>&1; then
-    printf '%b\n' "$(t err_sudo_required)" >&2
-    exit 1
-fi
-
-sudo rm -f "$BIN_PATH"
+rm -f "$BIN_PATH"
 printf '%b\n' "$(t removed_binary)"
 printf '\n'
 
