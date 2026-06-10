@@ -103,14 +103,36 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn print_menu(doc: &toml_edit::DocumentMut) {
-    println!("\n  {}", i18n::t("setting.title"));
-    println!("  {}", "─".repeat(i18n::t("setting.title").chars().count()));
+    let title = i18n::t("setting.title");
+    println!("\n  {title}");
+    println!("  {}", "─".repeat(display_width(title)));
 
     for (i, item) in ITEMS.iter().enumerate() {
         let val = display_value(doc, item);
         let label = i18n::t(item.label);
-        println!("  {:2}. {:<30} = {}", i + 1, label, val);
+        let pw = display_width(label);
+        let pad = 30usize.saturating_sub(pw);
+        println!("  {:2}. {}{} = {}", i + 1, label, " ".repeat(pad.max(1)), val);
     }
+}
+
+/// Count terminal display columns: CJK/punctuation = 2, ASCII = 1.
+fn display_width(s: &str) -> usize {
+    s.chars().map(|c| {
+        if ('\u{1100}'..'\u{115F}').contains(&c)     // Hangul Jamo
+            || ('\u{2329}'..='\u{232A}').contains(&c)  // angle brackets
+            || ('\u{2E80}'..='\u{303E}').contains(&c)  // CJK radicals + symbols
+            || ('\u{3040}'..='\u{A4CF}').contains(&c)  // Hiragana, Katakana, Bopomofo, Hangul, CJK Unified, Yi
+            || ('\u{AC00}'..='\u{D7A3}').contains(&c)  // Hangul Syllables
+            || ('\u{F900}'..='\u{FAFF}').contains(&c)  // CJK Compat
+            || ('\u{FE10}'..='\u{FE19}').contains(&c)  // vertical forms
+            || ('\u{FE30}'..='\u{FE6F}').contains(&c)  // CJK Compat Forms
+            || ('\u{FF00}'..='\u{FF60}').contains(&c)  // Fullwidth Forms
+            || ('\u{FFE0}'..='\u{FFE6}').contains(&c)  // Fullwidth Signs
+            || ('\u{20000}'..='\u{2FFFF}').contains(&c) // CJK Extension B+
+            || ('\u{30000}'..='\u{3FFFF}').contains(&c) // CJK Extension G+
+        { 2 } else { 1 }
+    }).sum()
 }
 
 fn display_value(doc: &toml_edit::DocumentMut, item: &MenuItem) -> String {
