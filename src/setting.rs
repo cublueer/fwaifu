@@ -1,5 +1,7 @@
 use std::io::{self, Write};
 
+use crate::i18n;
+
 #[derive(Clone, Copy)]
 enum Kind {
     Bool,
@@ -15,26 +17,26 @@ struct MenuItem {
 
 const ITEMS: &[MenuItem] = &[
     // ── display ──
-    MenuItem { label: "Terminal display (chafa)",      path: &["term"],              kind: Kind::Bool },
-    MenuItem { label: "Chafa width",                    path: &["term_width"],        kind: Kind::Int },
-    MenuItem { label: "Proxy URL",                      path: &["proxy"],             kind: Kind::Str },
+    MenuItem { label: "setting.menu_0",  path: &["term"],              kind: Kind::Bool },
+    MenuItem { label: "setting.menu_1",  path: &["term_width"],        kind: Kind::Int },
+    MenuItem { label: "setting.menu_2",  path: &["proxy"],             kind: Kind::Str },
     // ── crop ──
-    MenuItem { label: "Image cropping",                 path: &["crop"],              kind: Kind::Bool },
-    MenuItem { label: "Crop width (px)",                path: &["crop_width"],        kind: Kind::Int },
-    MenuItem { label: "Crop height (px)",               path: &["crop_height"],       kind: Kind::Int },
+    MenuItem { label: "setting.menu_3",  path: &["crop"],              kind: Kind::Bool },
+    MenuItem { label: "setting.menu_4",  path: &["crop_width"],        kind: Kind::Int },
+    MenuItem { label: "setting.menu_5",  path: &["crop_height"],       kind: Kind::Int },
     // ── display ──
-    MenuItem { label: "Logo width",                     path: &["logo_width"],        kind: Kind::Int },
-    MenuItem { label: "Watch interval (s)",             path: &["watch_interval"],    kind: Kind::Int },
+    MenuItem { label: "setting.menu_6",  path: &["logo_width"],        kind: Kind::Int },
+    MenuItem { label: "setting.menu_7",  path: &["watch_interval"],    kind: Kind::Int },
     // ── [download] ──
-    MenuItem { label: "Download batch size",            path: &["download", "batch_size"], kind: Kind::Int },
+    MenuItem { label: "setting.menu_8",  path: &["download", "batch_size"], kind: Kind::Int },
     // ── [cache] ──
-    MenuItem { label: "Cache max limit",                path: &["cache", "max_limit"],    kind: Kind::Int },
-    MenuItem { label: "Cache min trigger",              path: &["cache", "min_trigger"],  kind: Kind::Int },
-    MenuItem { label: "Cache max used",                 path: &["cache", "max_used"],     kind: Kind::Int },
-    MenuItem { label: "Cache auto-clean",               path: &["cache", "clean_cache"],  kind: Kind::Bool },
+    MenuItem { label: "setting.menu_9",  path: &["cache", "max_limit"],    kind: Kind::Int },
+    MenuItem { label: "setting.menu_10", path: &["cache", "min_trigger"],  kind: Kind::Int },
+    MenuItem { label: "setting.menu_11", path: &["cache", "max_used"],     kind: Kind::Int },
+    MenuItem { label: "setting.menu_12", path: &["cache", "clean_cache"],  kind: Kind::Bool },
     // ── save ──
-    MenuItem { label: "SFW save path",                  path: &["save_path_sfw"],     kind: Kind::Str },
-    MenuItem { label: "NSFW save path",                 path: &["save_path_nsfw"],    kind: Kind::Str },
+    MenuItem { label: "setting.menu_13", path: &["save_path_sfw"],     kind: Kind::Str },
+    MenuItem { label: "setting.menu_14", path: &["save_path_nsfw"],    kind: Kind::Str },
 ];
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
@@ -57,28 +59,43 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         print_menu(&doc);
-        let input = read_line("\nEnter number to modify, s to save, q to quit: ").unwrap_or_default();
+        let prompt = format!("\n{}", i18n::t("setting.prompt"));
+        let input = read_line(&prompt).unwrap_or_default();
 
         match input.trim() {
             "q" | "Q" => {
-                println!("Exited without saving.");
+                println!("{}", i18n::t("setting.exited"));
                 return Ok(());
             }
             "s" | "S" => {
                 let parent = config_path.parent().unwrap();
                 std::fs::create_dir_all(parent)?;
                 std::fs::write(&config_path, doc.to_string())?;
-                println!("\nConfig saved to {}", config_path.display());
+                println!("\n{}", i18n::tf("setting.saved", &[&config_path.display().to_string()]));
                 return Ok(());
+            }
+            "r" | "R" => {
+                let prompt = i18n::t("setting.restore_confirm");
+                let answer = read_line(prompt).unwrap_or_default();
+                if answer.trim().eq_ignore_ascii_case("y") {
+                    for item in ITEMS {
+                        remove_key(&mut doc, item.path);
+                    }
+                    cleanup_empty_table(&mut doc, "download");
+                    cleanup_empty_table(&mut doc, "cache");
+                    println!("{}", i18n::t("setting.restored"));
+                } else {
+                    println!("{}", i18n::t("setting.restore_cancelled"));
+                }
             }
             num_str => {
                 match num_str.parse::<usize>() {
                     Ok(n) if n >= 1 && n <= ITEMS.len() => {
                         if let Err(e) = edit_item(&ITEMS[n - 1], &mut doc) {
-                            println!("Error: {}", e);
+                            println!("{}", i18n::tf("setting.error", &[&e]));
                         }
                     }
-                    _ => println!("Invalid. Enter 1-{}, s, or q.", ITEMS.len()),
+                    _ => println!("{}", i18n::tf("setting.invalid", &[&ITEMS.len().to_string()])),
                 }
             }
         }
@@ -86,12 +103,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn print_menu(doc: &toml_edit::DocumentMut) {
-    println!("\n  fwaifu Configuration Editor");
-    println!("  ────────────────────────────\n");
+    println!("\n  {}", i18n::t("setting.title"));
+    println!("  {}", "─".repeat(i18n::t("setting.title").chars().count()));
 
     for (i, item) in ITEMS.iter().enumerate() {
         let val = display_value(doc, item);
-        println!("  {:2}. {:<30} = {}", i + 1, item.label, val);
+        let label = i18n::t(item.label);
+        println!("  {:2}. {:<30} = {}", i + 1, label, val);
     }
 }
 
@@ -100,15 +118,15 @@ fn display_value(doc: &toml_edit::DocumentMut, item: &MenuItem) -> String {
     match item.kind {
         Kind::Bool => match target.and_then(|t| t.as_bool()) {
             Some(v) => v.to_string(),
-            None => "(not set)".to_string(),
+            None => i18n::t("setting.not_set").to_string(),
         },
         Kind::Int => match target.and_then(|t| t.as_integer()) {
             Some(v) => v.to_string(),
-            None => "(not set)".to_string(),
+            None => i18n::t("setting.not_set").to_string(),
         },
         Kind::Str => match target.and_then(|t| t.as_str()) {
             Some(v) if !v.is_empty() => v.to_string(),
-            _ => "(not set)".to_string(),
+            _ => i18n::t("setting.not_set").to_string(),
         },
     }
 }
@@ -126,47 +144,57 @@ fn ensure_table(doc: &mut toml_edit::DocumentMut, name: &str) {
     }
 }
 
+fn cleanup_empty_table(doc: &mut toml_edit::DocumentMut, name: &str) {
+    if let Some(table) = doc.get(name).and_then(|t| t.as_table()) {
+        if table.is_empty() {
+            doc.remove(name);
+        }
+    }
+}
+
 fn edit_item(item: &MenuItem, doc: &mut toml_edit::DocumentMut) -> Result<(), String> {
+    let label = i18n::t(item.label);
     let current = display_value(doc, item);
-    println!("\n  {}  (current: {})", item.label, current);
+    println!("\n  {}  ({})", label, i18n::tf("setting.current", &[&current]));
 
     match item.kind {
         Kind::Bool => {
             let cur = resolve(doc, item.path).and_then(|t| t.as_bool()).unwrap_or(false);
             let new_val = !cur;
             let display = if new_val { "true" } else { "false" };
-            let input = read_line(&format!("  Change to {}? [y/N] ", display)).unwrap_or_default();
+            let prompt = i18n::tf("setting.change", &[display]);
+            let input = read_line(&prompt).unwrap_or_default();
             if input.trim().eq_ignore_ascii_case("y") {
                 set_value(doc, item.path, toml_edit::value(new_val));
-                println!("  {} = {}", item.label, display);
+                println!("  {} = {}", label, display);
             } else {
-                println!("  Unchanged.");
+                println!("  {}", i18n::t("setting.unchanged"));
             }
         }
         Kind::Int => {
-            let input = read_line("  New value (empty to keep): ").unwrap_or_default();
+            let input = read_line(i18n::t("setting.int_prompt")).unwrap_or_default();
             let trimmed = input.trim();
             if trimmed.is_empty() {
-                println!("  Unchanged.");
+                println!("  {}", i18n::t("setting.unchanged"));
                 return Ok(());
             }
             match trimmed.parse::<i64>() {
                 Ok(v) if v >= 0 => {
                     set_value(doc, item.path, toml_edit::value(v));
-                    println!("  {} = {}", item.label, v);
+                    println!("  {} = {}", label, v);
                 }
-                _ => return Err("Invalid number (must be >= 0)".to_string()),
+                _ => return Err(i18n::t("setting.int_invalid").to_string()),
             }
         }
         Kind::Str => {
-            let input = read_line("  New value (empty to clear): ").unwrap_or_default();
+            let input = read_line(i18n::t("setting.str_prompt")).unwrap_or_default();
             let trimmed = input.trim();
             if trimmed.is_empty() {
                 remove_key(doc, item.path);
-                println!("  {} cleared.", item.label);
+                println!("  {}", i18n::tf("setting.cleared", &[label]));
             } else {
                 set_value(doc, item.path, toml_edit::value(trimmed));
-                println!("  {} = {}", item.label, trimmed);
+                println!("  {} = {}", label, trimmed);
             }
         }
     }
